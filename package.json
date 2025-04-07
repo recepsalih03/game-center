@@ -1,0 +1,23 @@
+{
+  "name": "game-center",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "private": true,
+  "workspaces": [
+    "packages/*"
+  ],
+  "devDependencies": {
+    "lerna": "^8.2.1"
+  },
+  "scripts": {
+    "install:all": "npm install",
+    "start:client": "lerna run start --scope client",
+    "build:client": "lerna run build --scope client",
+    "dev:server": "lerna run dev --scope server",
+    "build:server": "lerna run build --scope server"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC"
+}
