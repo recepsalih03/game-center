@@ -16,6 +16,7 @@
     "@types/react": "^19.1.0",
     "@types/react-dom": "^19.1.1",
     "axios": "^1.8.4",
+    "crypto-js": "^4.2.0",
     "i18next": "^24.2.3",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
@@ -48,5 +49,8 @@
       "last 1 firefox version",
       "last 1 safari version"
     ]
+  },
+  "devDependencies": {
+    "@types/crypto-js": "^4.2.2"
   }
 }

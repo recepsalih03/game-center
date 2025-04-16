@@ -1,30 +1,27 @@
-import React from 'react';
-import { createTheme, ThemeProvider } from '@mui/material/styles';
-import { Box, Typography, Button } from '@mui/material';
+import React, { useState } from "react";
+import { ThemeProvider } from "@mui/material/styles";
+import CssBaseline from "@mui/material/CssBaseline";
+import { getTheme } from "./theme";
+import LoginPage from "./pages/LoginPage";
+import { AuthProvider } from "./contexts/AuthContext";
 
-const theme = createTheme({
-  palette: {
-    primary: { main: '#1976d2' },
-    secondary: { main: '#9c27b0' }
-  }
-});
+const App: React.FC = () => {
+  const [mode, setMode] = useState<"light" | "dark">("light");
 
-function App() {
+  const toggleTheme = () => {
+    setMode((prevMode) => (prevMode === "dark" ? "light" : "dark"));
+  };
+
+  const theme = getTheme(mode);
+
   return (
     <ThemeProvider theme={theme}>
-      <Box sx={{ p: 2 }}>
-        <Typography variant="h4" sx={{ mb: 2 }}>
-          Hello from MUI 7 (React 18 + TS)
-        </Typography>
-        <Button variant="contained" color="primary" sx={{ mr: 1 }}>
-          Primary
-        </Button>
-        <Button variant="contained" color="secondary">
-          Secondary
-        </Button>
-      </Box>
+      <CssBaseline />
+      <AuthProvider>
+        <LoginPage toggleTheme={toggleTheme} isDarkMode={mode === "dark"} />
+      </AuthProvider>
     </ThemeProvider>
   );
-}
+};
 
 export default App;
