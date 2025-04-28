@@ -1,40 +1,51 @@
-import React, { createContext, useState, useEffect, ReactNode } from "react";
-import { User } from "../config/users";
+import React, {
+  createContext,
+  useState,
+  useEffect,
+  ReactNode,
+} from "react";
+import {
+  login as loginService,
+  getSession,
+  logout as logoutService,
+} from "../services/authService";
+
+interface User {
+  email: string;
+}
 
 interface AuthContextType {
   user: User | null;
-  login: (user: User) => void;
+  login: (email: string, password: string) => Promise<void>;
   logout: () => void;
 }
 
 export const AuthContext = createContext<AuthContextType>({
   user: null,
-  login: () => {},
+  login: async () => {},
   logout: () => {},
 });
 
-interface AuthProviderProps {
-  children: ReactNode;
-}
-
-export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
+export const AuthProvider: React.FC<{ children: ReactNode }> = ({
+  children,
+}) => {
   const [user, setUser] = useState<User | null>(null);
 
   useEffect(() => {
-    const storedUser = localStorage.getItem("user");
-    if (storedUser) {
-      setUser(JSON.parse(storedUser));
+    const sess = getSession();
+    if (sess) {
+      setUser(sess.user);
     }
   }, []);
 
-  const login = (userData: User) => {
-    setUser(userData);
-    localStorage.setItem("user", JSON.stringify(userData));
+  const login = async (email: string, password: string) => {
+    const sess = await loginService(email, password);
+    setUser(sess.user);
   };
 
   const logout = () => {
+    logoutService();
     setUser(null);
-    localStorage.removeItem("user");
   };
 
   return (
