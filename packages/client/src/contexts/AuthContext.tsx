@@ -1,17 +1,22 @@
 import React, {
   createContext,
   useState,
-  useEffect,
   ReactNode,
 } from "react";
 import {
-  login as loginService,
-  getSession,
-  logout as logoutService,
+  login as apiLogin,
+  getSession as apiGetSession,
+  logout as apiLogout,
 } from "../services/authService";
 
 interface User {
   email: string;
+}
+
+interface Session {
+  user: User;
+  accessToken: string;
+  refreshToken: string;
 }
 
 interface AuthContextType {
@@ -29,22 +34,18 @@ export const AuthContext = createContext<AuthContextType>({
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({
   children,
 }) => {
-  const [user, setUser] = useState<User | null>(null);
-
-  useEffect(() => {
-    const sess = getSession();
-    if (sess) {
-      setUser(sess.user);
-    }
-  }, []);
+  const initSession = apiGetSession();
+  const [user, setUser] = useState<User | null>(
+    initSession ? initSession.user : null
+  );
 
   const login = async (email: string, password: string) => {
-    const sess = await loginService(email, password);
+    const sess: Session = await apiLogin(email, password);
     setUser(sess.user);
   };
 
   const logout = () => {
-    logoutService();
+    apiLogout();
     setUser(null);
   };
 

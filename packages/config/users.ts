@@ -3,10 +3,12 @@ export interface User {
   passwordHash: string;
 }
 
+const PASSWORD = "password";
+const REAL_HASH = "5e884898da28047151d0e56f8dc6292773603d0d6aabbdd62a11ef721d1542d8";
+
 export const users: User[] = [
   {
     email: "employee@example.com",
-    passwordHash:
-      "5e884898da28047151d0e56f8dc6292773603d0d6aabbddf4e2a5f1a15a3e7d",
+    passwordHash: REAL_HASH,
   },
 ];
