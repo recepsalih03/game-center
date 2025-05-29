@@ -1,29 +1,35 @@
-import React, { useContext, useEffect, useState } from "react";
-import { AuthContext } from "../contexts/AuthContext";
+import React, { useEffect, useState } from "react";
 import { Box, Typography, Button } from "@mui/material";
 import api from "../api/axios";
 
-const HomePage: React.FC = () => {
-  const { user, logout } = useContext(AuthContext);
-  const [msg, setMsg] = useState<string>("Yükleniyor...");
+const GameHomePage: React.FC = () => {
+  const [playerName, setPlayerName] = useState<string>("Oyuncu");
+  const [gameInfo, setGameInfo] = useState<string>("Yükleniyor...");
 
   useEffect(() => {
     api
-      .get<{ msg: string }>("/protected")
-      .then(res => setMsg(res.data.msg))
-      .catch(() => setMsg("Sunucuya bağlanılamadı veya token geçersiz"));
+      .get<{ info: string }>("/game-info")
+      .then(res => setGameInfo(res.data.info))
+      .catch(() => setGameInfo("Sunucuya bağlanılamadı veya bilgi alınamadı"));
   }, []);
+
+  const startGame = () => {
+    console.log("Oyun başlatılıyor...");
+  };
 
   return (
     <Box sx={{ p: 4 }}>
       <Typography variant="h4" gutterBottom>
-        Hoş geldin, {user?.email}
+        Hoş geldin, {playerName}!
       </Typography>
-      <Button variant="contained" color="secondary" onClick={logout}>
-        Çıkış Yap
+      <Typography variant="body1" gutterBottom>
+        Oyun Bilgisi: {gameInfo}
+      </Typography>
+      <Button variant="contained" color="primary" onClick={startGame}>
+        Oyuna Başla
       </Button>
     </Box>
   );
 };
 
-export default HomePage;
+export default GameHomePage;
