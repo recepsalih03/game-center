@@ -6,6 +6,8 @@ import { AuthProvider } from "./contexts/AuthContext";
 import LoginPage from "./pages/LoginPage";
 import HomePage from "./pages/HomePage";
 import PrivateRoute from "./auth/PrivateRoute";
+import GameDetailPage from "./pages/GameDetailPage";
+import GamePlayPage from "./pages/GamePlayPage";
 
 const App: React.FC = () => {
   const [mode, setMode] = useState<"light" | "dark">("light");
@@ -18,6 +20,8 @@ const App: React.FC = () => {
         <BrowserRouter>
           <Routes>
             <Route path="/login" element={<LoginPage />} />
+            <Route path="/game/:id"  element={<GameDetailPage />} />
+            <Route path="/play/:id"  element={<GamePlayPage />} />  
             <Route
               path="/"
               element={
