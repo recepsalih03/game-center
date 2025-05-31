@@ -1,4 +1,3 @@
-// src/components/Header.tsx
 "use client";
 
 import React, { useState } from "react";
@@ -37,9 +36,8 @@ export default function Header({ username, onLogout }: Props) {
           </Avatar>
         </IconButton>
 
-        {/*  ----- Menü -----  */}
         <Menu open={open} anchorEl={anchorEl} onClose={() => setAnchorEl(null)}>
-          <MenuItem onClick={() => { /* Profil modalini üst bileşen açsın */ setAnchorEl(null); }}>
+          <MenuItem onClick={() => { setAnchorEl(null); }}>
             Profilim
           </MenuItem>
           <MenuItem

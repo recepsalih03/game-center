@@ -1,4 +1,3 @@
-// packages/client/src/pages/HomePage.tsx
 "use client"
 
 import React, { useState } from "react"
@@ -19,7 +18,6 @@ import LobbySidebar   from "../components/LobbySidebar"
 import type { GameCardProps } from "../components/GameCard"
 import type { LobbyItem }     from "../components/LobbyList"
 
-/* ───────────── Dummy Data ───────────── */
 const dummyGames: GameCardProps[] = [
   { id: 1, title: "Epic Adventure", imageUrl: "/placeholder.svg?h=150&w=280", players: 1243, category: "RPG", rating: 4.8 },
   { id: 2, title: "Space Explorers", imageUrl: "/placeholder.svg?h=150&w=280", players: 876,  category: "Strategy", rating: 4.5 },
@@ -36,12 +34,11 @@ const dummyLobbies: LobbyItem[] = [
   { id: 4, name: "Beginners Welcome",   players: 3, maxPlayers: 5, game: "Racing Champs", status: "open" },
 ]
 
-/* ───────────── Theme ───────────── */
 const lightTheme = createTheme({
   palette: {
     mode: "light",
-    primary:   { main: "#1976d2" },  // blue
-    secondary: { main: "#ff9100" },  // orange (lobby button)
+    primary:   { main: "#1976d2" },
+    secondary: { main: "#ff9100" },
     background: { default: "#fafafa", paper: "#ffffff" },
   },
   shape: { borderRadius: 8 },
@@ -52,29 +49,23 @@ const lightTheme = createTheme({
   },
 })
 
-/* ───────────── Helpers ───────────── */
 const getUserInitials = (name: string) =>
   name.split(" ").map((n) => n[0]).join("").toUpperCase()
 
-/* ───────────── Page ───────────── */
 export default function HomePage() {
-  // user info (gerçekte auth’tan gelir)
   const [username]      = useState("John Doe")
   const [email]         = useState("john.doe@example.com")
   const [memberSince]   = useState("Jan 2024")
 
-  // avatar-menü & profil modal state
   const [menuAnchor,   setMenuAnchor]   = useState<HTMLElement | null>(null)
   const [profileOpen,  setProfileOpen]  = useState(false)
 
-  // lobby form state (LobbySidebar’a aktarılıyor)
   const [newLobbyName, setNewLobbyName] = useState("")
   const [selectedGame, setSelectedGame] = useState("")
   const [maxPlayers,   setMaxPlayers]   = useState(4)
 
-  // ─── actions ──────────────────────────────────────────
   const handleLogout = () => {
-    localStorage.removeItem("token")      // örnek
+    localStorage.removeItem("token")
     window.location.href = "/login"
   }
 
@@ -85,12 +76,10 @@ export default function HomePage() {
     setMaxPlayers(4)
   }
 
-  /* ───────────── JSX ───────────── */
   return (
     <ThemeProvider theme={lightTheme}>
       <CssBaseline />
 
-      {/* ─── Header Bar ─── */}
       <HeaderBar
         username={username}
         notifCount={4}
@@ -98,7 +87,6 @@ export default function HomePage() {
         getInitials={getUserInitials}
       />
 
-      {/* ─── Avatar Menu ─── */}
       <AvatarMenu
         anchorEl={menuAnchor}
         onClose={() => setMenuAnchor(null)}
@@ -106,7 +94,6 @@ export default function HomePage() {
         onLogout={() => { setMenuAnchor(null); handleLogout() }}
       />
 
-      {/* ─── Profile Dialog ─── */}
       <ProfileDialog
         open={profileOpen}
         onClose={() => setProfileOpen(false)}
@@ -116,16 +103,13 @@ export default function HomePage() {
         getInitials={getUserInitials}
       />
 
-      {/* ─── Main Layout ─── */}
       <Box display="flex" flexDirection="column" minHeight="100vh">
         <Container maxWidth="xl" sx={{ mt: 4, mb: 4, flexGrow: 1 }}>
           <Box display="flex" gap={3} flexWrap={{ xs: "wrap", md: "nowrap" }}>
-            {/* Games grid */}
             <Box flexGrow={1}>
               <GamesGrid games={dummyGames} />
             </Box>
 
-            {/* Lobby sidebar */}
             <Box width={{ xs: "100%", md: 380 }}>
               <LobbySidebar
                 games={dummyGames}
