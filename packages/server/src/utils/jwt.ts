@@ -1,6 +1,8 @@
 import jwt from "jsonwebtoken";
 import dotenv from "dotenv";
-dotenv.config();
+import path from "path";
+
+dotenv.config({ path: path.resolve(__dirname, "../../.env") });
 
 const ACCESS_SECRET = process.env.JWT_ACCESS_SECRET!;
 const REFRESH_SECRET = process.env.JWT_REFRESH_SECRET!;

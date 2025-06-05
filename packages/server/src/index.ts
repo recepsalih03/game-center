@@ -4,6 +4,9 @@ import dotenv from "dotenv";
 import publicRoutes from "./routes/public";
 import protectedRoutes from "./routes/protected";
 import authRoutes from "./routes/auth";
+import lobbiesRoutes from "./routes/lobbies";
+import gamesRoutes from "./routes/games";
+
 import { logger } from "./middleware/logger";
 import { errorHandler } from "./middleware/errorHandler";
 
@@ -14,10 +17,12 @@ app.use(cors());
 app.use(express.json());
 app.use(logger);
 
-
 app.use("/api", authRoutes);
 app.use("/api/public", publicRoutes);
 app.use("/api/protected", protectedRoutes);
+ 
+app.use("/api/lobbies", lobbiesRoutes);
+app.use("/api/games", gamesRoutes);
 
 app.use(errorHandler);
 
