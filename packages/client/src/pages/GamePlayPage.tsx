@@ -1,30 +1,44 @@
-"use client"
+import React from "react";
+import {
+  Box,
+  Container,
+  CssBaseline,
+  ThemeProvider,
+  createTheme,
+  Typography,
+} from "@mui/material";
+import { useNavigate, useParams } from "react-router-dom";
 
-import React from "react"
-import { Box, Container, CssBaseline, ThemeProvider, createTheme } from "@mui/material"
-import { useNavigate } from "react-router-dom"
-import { useParams } from "react-router-dom"
+import HeaderBar from "../components/HeaderBar";
+import AvatarMenu from "../components/AvatarMenu";
+import ProfileDialog from "../components/ProfileDialog";
+import { games as dummyGames } from "../lib/dummy-data";
 
-import HeaderBar     from "../components/HeaderBar"
-import AvatarMenu    from "../components/AvatarMenu"
-import ProfileDialog from "../components/ProfileDialog"
-import { games as dummyGames } from "../lib/dummy-data"
+import { TombalaBoard } from "../../../game-tombala/dist/TombalaBoard";
 
 const lightTheme = createTheme({
-  palette: { mode: "light", primary: { main: "#1976d2" }, secondary: { main: "#ff9800" } },
-})
+  palette: {
+    mode: "light",
+    primary: { main: "#1976d2" },
+    secondary: { main: "#ff9800" },
+  },
+});
 
 export default function GamePlayPage() {
-  const { id } = useParams()
-  const game   = dummyGames.find(g => g.id === Number(id))
-  const navigate = useNavigate() 
+  const { id } = useParams<{ id: string }>();
+  const game = dummyGames.find((g) => g.id === Number(id));
+  const navigate = useNavigate();
 
+  const [anchor, setAnchor] = React.useState<HTMLElement | null>(null);
+  const [profile, setProfile] = React.useState(false);
+  const initials = (n: string) =>
+    n
+      .split(" ")
+      .map((x) => x[0])
+      .join("")
+      .toUpperCase();
 
-  const [anchor,  setAnchor]   = React.useState<HTMLElement | null>(null)
-  const [profile, setProfile]  = React.useState(false)
-  const initials = (n: string) => n.split(" ").map(x => x[0]).join("").toUpperCase()
-
-  if (!game) return <div>Game not found</div>
+  if (!game) return <div>Game not found</div>;
 
   return (
     <ThemeProvider theme={lightTheme}>
@@ -33,16 +47,23 @@ export default function GamePlayPage() {
       <HeaderBar
         username="John Doe"
         notifCount={4}
-        onAvatarClick={e => setAnchor(e.currentTarget)}
+        onAvatarClick={(e) => setAnchor(e.currentTarget)}
         getInitials={initials}
       />
 
       <AvatarMenu
         anchorEl={anchor}
         onClose={() => setAnchor(null)}
-        onProfile={() => { setAnchor(null); setProfile(true) }}
-        onLogout={() => { localStorage.removeItem("token"); navigate("/login") }}
+        onProfile={() => {
+          setAnchor(null);
+          setProfile(true);
+        }}
+        onLogout={() => {
+          localStorage.removeItem("token");
+          navigate("/login");
+        }}
       />
+
       <ProfileDialog
         open={profile}
         onClose={() => setProfile(false)}
@@ -52,24 +73,17 @@ export default function GamePlayPage() {
         getInitials={initials}
       />
 
-      <Container maxWidth="lg" sx={{ mt: 4, mb: 4, display: "flex", justifyContent: "center" }}>
+      <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
         <Box
           sx={{
-            width: { xs: "100%", md: 960 },
-            height: { xs: 540, md: 640 },
-            bgcolor: "#000",
+            bgcolor: "#fafafa",
             borderRadius: 2,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            color: "white",
-            fontSize: 24,
-            fontWeight: 500,
+            p: 3,
           }}
         >
-          {`[ ${game.title} – Game Canvas ]`}
+          <TombalaBoard />
         </Box>
       </Container>
     </ThemeProvider>
-  )
+  );
 }

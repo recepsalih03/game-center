@@ -1,43 +1,29 @@
-"use client"
-
-import React, { useState } from "react"
+import React, { useState, useEffect } from "react";
 import {
   Box,
   Container,
   CssBaseline,
   ThemeProvider,
   createTheme,
-} from "@mui/material"
+  CircularProgress,
+  Alert,
+} from "@mui/material";
 
-import HeaderBar      from "../components/HeaderBar"
-import AvatarMenu     from "../components/AvatarMenu"
-import ProfileDialog  from "../components/ProfileDialog"
-import GamesGrid      from "../components/GamesGrid"
-import LobbySidebar   from "../components/LobbySidebar"
+import HeaderBar from "../components/HeaderBar";
+import AvatarMenu from "../components/AvatarMenu";
+import ProfileDialog from "../components/ProfileDialog";
+import GamesGrid from "../components/GamesGrid";
+import LobbySidebar from "../components/LobbySidebar";
 
-import type { GameCardProps } from "../components/GameCard"
-import type { LobbyItem }     from "../components/LobbyList"
+import type { GameCardProps } from "../components/GameCard";
+import type { LobbyItem } from "../components/LobbyList";
 
-const dummyGames: GameCardProps[] = [
-  { id: 1, title: "Epic Adventure", imageUrl: "/placeholder.svg?h=150&w=280", players: 1243, category: "RPG", rating: 4.8 },
-  { id: 2, title: "Space Explorers", imageUrl: "/placeholder.svg?h=150&w=280", players: 876,  category: "Strategy", rating: 4.5 },
-  { id: 3, title: "Racing Champions", imageUrl: "/placeholder.svg?h=150&w=280", players: 2341, category: "Racing",  rating: 4.2 },
-  { id: 4, title: "Battle Royale",   imageUrl: "/placeholder.svg?h=150&w=280", players: 5432, category: "Action",  rating: 4.7 },
-  { id: 5, title: "Puzzle Master",   imageUrl: "/placeholder.svg?h=150&w=280", players: 654,  category: "Puzzle",  rating: 4.3 },
-  { id: 6, title: "Fantasy World",   imageUrl: "/placeholder.svg?h=150&w=280", players: 1876, category: "MMORPG",  rating: 4.6 },
-]
-
-const dummyLobbies: LobbyItem[] = [
-  { id: 1, name: "Pro Players Only", players: 3, maxPlayers: 4, game: "Epic Adventure",   status: "open" },
-  { id: 2, name: "Casual Fun",       players: 2, maxPlayers: 6, game: "Space Explorers",  status: "open" },
-  { id: 3, name: "Tournament Practice", players: 8, maxPlayers: 8, game: "Battle Royale", status: "full" },
-  { id: 4, name: "Beginners Welcome",   players: 3, maxPlayers: 5, game: "Racing Champs", status: "open" },
-]
+import api from "../api/axios";
 
 const lightTheme = createTheme({
   palette: {
     mode: "light",
-    primary:   { main: "#1976d2" },
+    primary: { main: "#1976d2" },
     secondary: { main: "#ff9100" },
     background: { default: "#fafafa", paper: "#ffffff" },
   },
@@ -47,34 +33,104 @@ const lightTheme = createTheme({
     h4: { fontWeight: 600 },
     h5: { fontWeight: 600 },
   },
-})
+});
 
 const getUserInitials = (name: string) =>
-  name.split(" ").map((n) => n[0]).join("").toUpperCase()
+  name
+    .split(" ")
+    .map((n) => n[0])
+    .join("")
+    .toUpperCase();
 
 export default function HomePage() {
-  const [username]      = useState("John Doe")
-  const [email]         = useState("john.doe@example.com")
-  const [memberSince]   = useState("Jan 2024")
+  const [username] = useState("John Doe");
+  const [email] = useState("john.doe@example.com");
+  const [memberSince] = useState("Jan 2024");
 
-  const [menuAnchor,   setMenuAnchor]   = useState<HTMLElement | null>(null)
-  const [profileOpen,  setProfileOpen]  = useState(false)
+  const [menuAnchor, setMenuAnchor] = useState<HTMLElement | null>(null);
+  const [profileOpen, setProfileOpen] = useState(false);
 
-  const [newLobbyName, setNewLobbyName] = useState("")
-  const [selectedGame, setSelectedGame] = useState("")
-  const [maxPlayers,   setMaxPlayers]   = useState(4)
+  const [games, setGames] = useState<GameCardProps[]>([]);
+  const [gamesLoading, setGamesLoading] = useState(true);
+  const [gamesError, setGamesError] = useState<string | null>(null);
+
+  const [lobbies, setLobbies] = useState<LobbyItem[]>([]);
+  const [lobbiesLoading, setLobbiesLoading] = useState(true);
+  const [lobbiesError, setLobbiesError] = useState<string | null>(null);
+
+  const [newLobbyName, setNewLobbyName] = useState("");
+  const [selectedGame, setSelectedGame] = useState<string>("");
+  const [maxPlayers, setMaxPlayers] = useState(4);
 
   const handleLogout = () => {
-    localStorage.removeItem("token")
-    window.location.href = "/login"
-  }
+    localStorage.removeItem("accessToken");
+    localStorage.removeItem("refreshToken");
+    window.location.href = "/login";
+  };
 
-  const handleCreateLobby = () => {
-    console.log({ newLobbyName, selectedGame, maxPlayers })
-    setNewLobbyName("")
-    setSelectedGame("")
-    setMaxPlayers(4)
-  }
+  useEffect(() => {
+    async function fetchGames() {
+      setGamesLoading(true);
+      setGamesError(null);
+      try {
+        const res = await api.get<GameCardProps[]>("/games");
+        setGames(res.data);
+        setGamesLoading(false);
+      } catch (err: any) {
+        setGamesError("Oyunlar yüklenirken hata oluştu.");
+        setGamesLoading(false);
+      }
+    }
+    fetchGames();
+  }, []);
+
+  useEffect(() => {
+    async function fetchLobbies() {
+      setLobbiesLoading(true);
+      setLobbiesError(null);
+      try {
+        const queryParam = selectedGame ? `?gameId=${selectedGame}` : "";
+        const res = await api.get<LobbyItem[]>(`/lobbies${queryParam}`);
+        setLobbies(res.data);
+        setLobbiesLoading(false);
+      } catch (err: any) {
+        setLobbiesError("Lobby listesi yüklenirken hata oluştu.");
+        setLobbiesLoading(false);
+      }
+    }
+    fetchLobbies();
+  }, [selectedGame]);
+
+  const handleCreateLobby = async () => {
+    if (!newLobbyName || !selectedGame) {
+      alert("Önce lobi adı ve oyun seçimi yapın.");
+      return;
+    }
+    try {
+      await api.post("/lobbies", {
+        name: newLobbyName,
+        gameId: Number(selectedGame),
+        maxPlayers,
+      });
+      const res = await api.get<LobbyItem[]>(`/lobbies?gameId=${selectedGame}`);
+      setLobbies(res.data);
+      setNewLobbyName("");
+      setSelectedGame("");
+      setMaxPlayers(4);
+    } catch (err: any) {
+      alert(err.response?.data?.error || "Lobby oluşturulurken hata oluştu.");
+    }
+  };
+
+  const handleJoinLobby = async (lobbyId: string) => {
+    try {
+      await api.put(`/lobbies/${lobbyId}/join`);
+      const res = await api.get<LobbyItem[]>(`/lobbies?gameId=${selectedGame}`);
+      setLobbies(res.data);
+    } catch (err: any) {
+      alert(err.response?.data?.error || "Lobby’ye katılırken hata oluştu.");
+    }
+  };
 
   return (
     <ThemeProvider theme={lightTheme}>
@@ -90,8 +146,14 @@ export default function HomePage() {
       <AvatarMenu
         anchorEl={menuAnchor}
         onClose={() => setMenuAnchor(null)}
-        onProfile={() => { setMenuAnchor(null); setProfileOpen(true) }}
-        onLogout={() => { setMenuAnchor(null); handleLogout() }}
+        onProfile={() => {
+          setMenuAnchor(null);
+          setProfileOpen(true);
+        }}
+        onLogout={() => {
+          setMenuAnchor(null);
+          handleLogout();
+        }}
       />
 
       <ProfileDialog
@@ -105,26 +167,39 @@ export default function HomePage() {
 
       <Box display="flex" flexDirection="column" minHeight="100vh">
         <Container maxWidth="xl" sx={{ mt: 4, mb: 4, flexGrow: 1 }}>
-          <Box display="flex" gap={3} flexWrap={{ xs: "wrap", md: "nowrap" }}>
-            <Box flexGrow={1}>
-              <GamesGrid games={dummyGames} />
-            </Box>
+          {gamesLoading ? (
+            <CircularProgress />
+          ) : gamesError ? (
+            <Alert severity="error">{gamesError}</Alert>
+          ) : (
+            <Box display="flex" gap={3} flexWrap={{ xs: "wrap", md: "nowrap" }}>
+              <Box flexGrow={1}>
+                <GamesGrid games={games} />
+              </Box>
 
-            <Box width={{ xs: "100%", md: 380 }}>
-              <LobbySidebar
-                games={dummyGames}
-                lobbies={dummyLobbies}
-                formState={{
-                  newLobbyName, setNewLobbyName,
-                  selectedGame, setSelectedGame,
-                  maxPlayers,   setMaxPlayers,
-                  onCreate:     handleCreateLobby,
-                }}
-              />
+              <Box width={{ xs: "100%", md: 380 }}>
+                <LobbySidebar
+                  games={games}
+                  lobbies={lobbies}
+                  formState={{
+                    newLobbyName,
+                    setNewLobbyName,
+                    selectedGame,
+                    setSelectedGame,
+                    maxPlayers,
+                    setMaxPlayers,
+                    onCreate: handleCreateLobby,
+                  }}
+                  onJoin={handleJoinLobby}
+                />
+
+                {lobbiesLoading && <CircularProgress size={24} />}
+                {lobbiesError && <Alert severity="error">{lobbiesError}</Alert>}
+              </Box>
             </Box>
-          </Box>
+          )}
         </Container>
       </Box>
     </ThemeProvider>
-  )
+  );
 }

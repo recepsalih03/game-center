@@ -1,30 +1,49 @@
-"use client"
-import React from "react"
-import { List, ListItem, ListItemText, Button } from "@mui/material"
+import React from "react";
+import { List, ListItem, ListItemText, Button } from "@mui/material";
 
 export interface LobbyItem {
-  id: number; name: string; players: number; maxPlayers: number; game: string; status: "open"|"full"|"in-progress";
+  id: string;
+  name: string;
+  players: number;
+  maxPlayers: number;
+  gameId: number;
+  status: "open" | "full" | "in-progress";
 }
 
-interface Props { lobbies: LobbyItem[] }
+interface Props {
+  lobbies: LobbyItem[];
+  onJoin: (id: string) => void;
+}
 
-export default function LobbyList({ lobbies }: Props) {
+export default function LobbyList({ lobbies, onJoin }: Props) {
   return (
     <List>
-      {lobbies.map((l)=>(
-        <ListItem key={l.id}
-          sx={{ mb:1, border:1, borderColor:"divider", borderRadius:1 }}
+      {lobbies.length === 0 && (
+        <ListItem>
+          <ListItemText primary="No lobbies yet." />
+        </ListItem>
+      )}
+      {lobbies.map((l) => (
+        <ListItem
+          key={l.id}
+          sx={{ mb: 1, border: 1, borderColor: "divider", borderRadius: 1 }}
           secondaryAction={
-            <Button variant="outlined" size="small" disabled={l.status==="full"}>
-              {l.status==="full" ? "Full" : "Join"}
+            <Button
+              variant="outlined"
+              size="small"
+              disabled={l.status === "full"}
+              onClick={() => onJoin(l.id)}
+            >
+              {l.status === "full" ? "Full" : "Join"}
             </Button>
-          }>
+          }
+        >
           <ListItemText
             primary={l.name}
-            secondary={`${l.game} — ${l.players}/${l.maxPlayers} players`}
+            secondary={`${l.players} / ${l.maxPlayers} players`}
           />
         </ListItem>
       ))}
     </List>
-  )
+  );
 }

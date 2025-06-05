@@ -2,6 +2,7 @@ import React, {
   createContext,
   useState,
   ReactNode,
+  useEffect,
 } from "react";
 import {
   login as apiLogin,
@@ -23,25 +24,43 @@ interface AuthContextType {
   user: User | null;
   login: (email: string, password: string) => Promise<void>;
   logout: () => void;
+  isLoading: boolean;
+  error: string | null;
 }
 
 export const AuthContext = createContext<AuthContextType>({
   user: null,
   login: async () => {},
   logout: () => {},
+  isLoading: false,
+  error: null,
 });
 
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({
   children,
 }) => {
-  const initSession = apiGetSession();
+  const initSess = apiGetSession();
   const [user, setUser] = useState<User | null>(
-    initSession ? initSession.user : null
+    initSess ? initSess.user : null
   );
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+  }, []);
 
   const login = async (email: string, password: string) => {
-    const sess: Session = await apiLogin(email, password);
-    setUser(sess.user);
+    setIsLoading(true);
+    setError(null);
+    try {
+      const sess: Session = await apiLogin(email, password);
+      setUser(sess.user);
+      setIsLoading(false);
+    } catch (err: any) {
+      setError(err.message || "Giriş başarısız");
+      setIsLoading(false);
+      throw err;
+    }
   };
 
   const logout = () => {
@@ -50,7 +69,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
   };
 
   return (
-    <AuthContext.Provider value={{ user, login, logout }}>
+    <AuthContext.Provider value={{ user, login, logout, isLoading, error }}>
       {children}
     </AuthContext.Provider>
   );
