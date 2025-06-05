@@ -7,14 +7,13 @@ import {
   createTheme,
   Typography,
 } from "@mui/material";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 
 import HeaderBar from "../components/HeaderBar";
 import AvatarMenu from "../components/AvatarMenu";
 import ProfileDialog from "../components/ProfileDialog";
-import { games as dummyGames } from "../lib/dummy-data";
 
-import { TombalaBoard } from "../../../game-tombala/dist/TombalaBoard";
+import { TombalaBoard } from "game-tombala";
 
 const lightTheme = createTheme({
   palette: {
@@ -25,8 +24,6 @@ const lightTheme = createTheme({
 });
 
 export default function GamePlayPage() {
-  const { id } = useParams<{ id: string }>();
-  const game = dummyGames.find((g) => g.id === Number(id));
   const navigate = useNavigate();
 
   const [anchor, setAnchor] = React.useState<HTMLElement | null>(null);
@@ -38,15 +35,13 @@ export default function GamePlayPage() {
       .join("")
       .toUpperCase();
 
-  if (!game) return <div>Game not found</div>;
-
   return (
     <ThemeProvider theme={lightTheme}>
       <CssBaseline />
 
       <HeaderBar
         username="John Doe"
-        notifCount={4}
+        notifCount={0}
         onAvatarClick={(e) => setAnchor(e.currentTarget)}
         getInitials={initials}
       />
@@ -79,9 +74,18 @@ export default function GamePlayPage() {
             bgcolor: "#fafafa",
             borderRadius: 2,
             p: 3,
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
           }}
         >
-          <TombalaBoard />
+          <Typography variant="h5" gutterBottom>
+            Tombala Kartınızı Aşağıda Görüntüleyebilirsiniz
+          </Typography>
+
+          <Box sx={{ width: "100%", mt: 2 }}>
+            <TombalaBoard />
+          </Box>
         </Box>
       </Container>
     </ThemeProvider>

@@ -1,30 +1,24 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import {
   Box,
   Container,
   CssBaseline,
   ThemeProvider,
   createTheme,
-  CircularProgress,
-  Alert,
+  Button,
+  Typography,
 } from "@mui/material";
+import { useNavigate } from "react-router-dom";
 
 import HeaderBar from "../components/HeaderBar";
 import AvatarMenu from "../components/AvatarMenu";
 import ProfileDialog from "../components/ProfileDialog";
-import GamesGrid from "../components/GamesGrid";
-import LobbySidebar from "../components/LobbySidebar";
-
-import type { GameCardProps } from "../components/GameCard";
-import type { LobbyItem } from "../components/LobbyList";
-
-import api from "../api/axios";
 
 const lightTheme = createTheme({
   palette: {
     mode: "light",
     primary: { main: "#1976d2" },
-    secondary: { main: "#ff9100" },
+    secondary: { main: "#ff9800" },
     background: { default: "#fafafa", paper: "#ffffff" },
   },
   shape: { borderRadius: 8 },
@@ -50,86 +44,11 @@ export default function HomePage() {
   const [menuAnchor, setMenuAnchor] = useState<HTMLElement | null>(null);
   const [profileOpen, setProfileOpen] = useState(false);
 
-  const [games, setGames] = useState<GameCardProps[]>([]);
-  const [gamesLoading, setGamesLoading] = useState(true);
-  const [gamesError, setGamesError] = useState<string | null>(null);
-
-  const [lobbies, setLobbies] = useState<LobbyItem[]>([]);
-  const [lobbiesLoading, setLobbiesLoading] = useState(true);
-  const [lobbiesError, setLobbiesError] = useState<string | null>(null);
-
-  const [newLobbyName, setNewLobbyName] = useState("");
-  const [selectedGame, setSelectedGame] = useState<string>("");
-  const [maxPlayers, setMaxPlayers] = useState(4);
+  const navigate = useNavigate();
 
   const handleLogout = () => {
-    localStorage.removeItem("accessToken");
-    localStorage.removeItem("refreshToken");
+    localStorage.removeItem("token");
     window.location.href = "/login";
-  };
-
-  useEffect(() => {
-    async function fetchGames() {
-      setGamesLoading(true);
-      setGamesError(null);
-      try {
-        const res = await api.get<GameCardProps[]>("/games");
-        setGames(res.data);
-        setGamesLoading(false);
-      } catch (err: any) {
-        setGamesError("Oyunlar yüklenirken hata oluştu.");
-        setGamesLoading(false);
-      }
-    }
-    fetchGames();
-  }, []);
-
-  useEffect(() => {
-    async function fetchLobbies() {
-      setLobbiesLoading(true);
-      setLobbiesError(null);
-      try {
-        const queryParam = selectedGame ? `?gameId=${selectedGame}` : "";
-        const res = await api.get<LobbyItem[]>(`/lobbies${queryParam}`);
-        setLobbies(res.data);
-        setLobbiesLoading(false);
-      } catch (err: any) {
-        setLobbiesError("Lobby listesi yüklenirken hata oluştu.");
-        setLobbiesLoading(false);
-      }
-    }
-    fetchLobbies();
-  }, [selectedGame]);
-
-  const handleCreateLobby = async () => {
-    if (!newLobbyName || !selectedGame) {
-      alert("Önce lobi adı ve oyun seçimi yapın.");
-      return;
-    }
-    try {
-      await api.post("/lobbies", {
-        name: newLobbyName,
-        gameId: Number(selectedGame),
-        maxPlayers,
-      });
-      const res = await api.get<LobbyItem[]>(`/lobbies?gameId=${selectedGame}`);
-      setLobbies(res.data);
-      setNewLobbyName("");
-      setSelectedGame("");
-      setMaxPlayers(4);
-    } catch (err: any) {
-      alert(err.response?.data?.error || "Lobby oluşturulurken hata oluştu.");
-    }
-  };
-
-  const handleJoinLobby = async (lobbyId: string) => {
-    try {
-      await api.put(`/lobbies/${lobbyId}/join`);
-      const res = await api.get<LobbyItem[]>(`/lobbies?gameId=${selectedGame}`);
-      setLobbies(res.data);
-    } catch (err: any) {
-      alert(err.response?.data?.error || "Lobby’ye katılırken hata oluştu.");
-    }
   };
 
   return (
@@ -138,7 +57,7 @@ export default function HomePage() {
 
       <HeaderBar
         username={username}
-        notifCount={4}
+        notifCount={0}
         onAvatarClick={(e) => setMenuAnchor(e.currentTarget)}
         getInitials={getUserInitials}
       />
@@ -165,41 +84,34 @@ export default function HomePage() {
         getInitials={getUserInitials}
       />
 
-      <Box display="flex" flexDirection="column" minHeight="100vh">
-        <Container maxWidth="xl" sx={{ mt: 4, mb: 4, flexGrow: 1 }}>
-          {gamesLoading ? (
-            <CircularProgress />
-          ) : gamesError ? (
-            <Alert severity="error">{gamesError}</Alert>
-          ) : (
-            <Box display="flex" gap={3} flexWrap={{ xs: "wrap", md: "nowrap" }}>
-              <Box flexGrow={1}>
-                <GamesGrid games={games} />
-              </Box>
+      <Container
+        maxWidth="sm"
+        sx={{
+          mt: 8,
+          mb: 8,
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          textAlign: "center",
+        }}
+      >
+        <Typography variant="h4" gutterBottom>
+          Tombala Oyununa Hoşgeldiniz
+        </Typography>
+        <Typography variant="body1" color="text.secondary" sx={{ mb: 4 }}>
+          Bu sayfadan doğrudan Tombala oyununu başlatabilirsiniz.
+        </Typography>
 
-              <Box width={{ xs: "100%", md: 380 }}>
-                <LobbySidebar
-                  games={games}
-                  lobbies={lobbies}
-                  formState={{
-                    newLobbyName,
-                    setNewLobbyName,
-                    selectedGame,
-                    setSelectedGame,
-                    maxPlayers,
-                    setMaxPlayers,
-                    onCreate: handleCreateLobby,
-                  }}
-                  onJoin={handleJoinLobby}
-                />
-
-                {lobbiesLoading && <CircularProgress size={24} />}
-                {lobbiesError && <Alert severity="error">{lobbiesError}</Alert>}
-              </Box>
-            </Box>
-          )}
-        </Container>
-      </Box>
+        <Button
+          variant="contained"
+          color="primary"
+          size="large"
+          onClick={() => navigate("/play")}
+          sx={{ py: 1.5, px: 4 }}
+        >
+          Tombala Oyna
+        </Button>
+      </Container>
     </ThemeProvider>
   );
 }

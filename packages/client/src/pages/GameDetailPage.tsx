@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useEffect } from "react";
+import React, { useState } from "react";
 import {
   Box,
   Container,
@@ -9,10 +9,8 @@ import {
   Tab,
   Grid,
   Button,
-  CircularProgress,
-  Alert,
 } from "@mui/material";
-import { useParams, useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 
 import HeaderBar from "../components/HeaderBar";
 import AvatarMenu from "../components/AvatarMenu";
@@ -22,10 +20,14 @@ import HowToPlay from "../components/HowtoPlay";
 import GameSettings from "../components/GameSettings";
 import GameHistory from "../components/GameHistory";
 import LobbyForm from "../components/GameLobbySection/LobbyForm";
-import LobbyList, { LobbyItem as Lobby } from "../components/LobbyList"; 
+import LobbyList from "../components/GameLobbySection/LobbyList";
 
-import { games as dummyGames, histories as dummyHistories } from "../lib/dummy-data";
-import api from "../api/axios";
+import {
+  games as dummyGames,
+  lobbies as dummyLobbies,
+  histories as dummyHistories,
+} from "../lib/dummy-data";
+import type { Lobby } from "../lib/dummy-data";
 
 const lightTheme = createTheme({
   palette: { mode: "light", primary: { main: "#1976d2" }, secondary: { main: "#ff9800" } },
@@ -41,78 +43,23 @@ export default function GameDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
 
-  const game = useMemo(() => dummyGames.find((g) => g.id === Number(id)), [id]);
+  const [anchor, setAnchor] = useState<HTMLElement | null>(null);
+  const [profile, setProfile] = useState(false);
+  const [tab, setTab] = useState(0);
+
+  const game = dummyGames.find((g) => g.id === Number(id));
 
   if (!game) {
     return <div>Game not found</div>;
   }
 
-  const [anchor, setAnchor] = useState<HTMLElement | null>(null);
-  const [profile, setProfile] = useState(false);
-  const initials = (n: string) =>
-    n
-      .split(" ")
-      .map((x) => x[0])
-      .join("")
-      .toUpperCase();
-
-  const [tab, setTab] = useState(0);
-
-  const [lobbies, setLobbies] = useState<Lobby[]>([]);
-  const [lobbiesLoading, setLobbiesLoading] = useState(true);
-  const [lobbiesError, setLobbiesError] = useState<string | null>(null);
-
-  const [newLobbyName, setNewLobbyName] = useState("");
-  const [maxPlayers, setMaxPlayers] = useState(4);
-
+  const lobbies: Lobby[] = dummyLobbies.filter((l) => l.game === game.title);
   const history = dummyHistories[game.id] ?? [];
 
-  useEffect(() => {
-    if (tab === 1) {
-      const fetchGameLobbies = async () => {
-        setLobbiesLoading(true);
-        setLobbiesError(null);
-        try {
-          const res = await api.get<Lobby[]>(`/lobbies?gameId=${game.id}`);
-          setLobbies(res.data);
-        } catch (err: any) {
-          setLobbiesError("Lobiler yüklenirken hata oluştu.");
-        } finally {
-          setLobbiesLoading(false);
-        }
-      };
-      fetchGameLobbies();
-    }
-  }, [tab, game.id]);
+  const initials = (n: string) => n.split(" ").map((x) => x[0]).join("").toUpperCase();
 
-  const handleCreateLobby = async (name: string, size: number) => {
-    if (!name) {
-      alert("Önce lobi adı girin.");
-      return;
-    }
-    try {
-      await api.post("/lobbies", {
-        name,
-        gameId: game.id,
-        maxPlayers: size,
-      });
-      const res = await api.get<Lobby[]>(`/lobbies?gameId=${game.id}`);
-      setLobbies(res.data);
-      setNewLobbyName("");
-      setMaxPlayers(4);
-    } catch (err: any) {
-      alert(err.response?.data?.error || "Lobby oluşturulurken hata oluştu.");
-    }
-  };
-
-  const handleJoinLobby = async (lobbyId: string) => {
-    try {
-      await api.put(`/lobbies/${lobbyId}/join`);
-      const res = await api.get<Lobby[]>(`/lobbies?gameId=${game.id}`);
-      setLobbies(res.data);
-    } catch (err: any) {
-      alert(err.response?.data?.error || "Lobby’ye katılırken hata oluştu.");
-    }
+  const handleCreateLobby = (name: string, size: number) => {
+    console.log("create lobby", { name, size, gameId: game.id });
   };
 
   return (
@@ -149,28 +96,16 @@ export default function GameDetailPage() {
       />
 
       <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
-        <Tabs
-          value={tab}
-          onChange={(_, v) => setTab(v)}
-          textColor="primary"
-          indicatorColor="primary"
-          sx={{ mb: 2 }}
-        >
-          {["Overview", "Lobbies", "History", "How to Play", "Settings"].map(
-            (lbl, i) => (
-              <Tab key={i} label={lbl} />
-            )
-          )}
+        <Tabs value={tab} onChange={(_, v) => setTab(v)} textColor="primary" indicatorColor="primary" sx={{ mb: 2 }}>
+          {["Overview", "Lobbies", "History", "How to Play", "Settings"].map((lbl, i) => (
+            <Tab key={i} label={lbl} />
+          ))}
         </Tabs>
 
         <TabPanel index={0} value={tab}>
           <GameOverview game={game} />
           <Box mt={3}>
-            <Button
-              variant="contained"
-              size="large"
-              onClick={() => navigate(`/play/${game.id}`)}
-            >
+            <Button variant="contained" size="large" onClick={() => navigate(`/play/${game.id}`)}>
               Launch Game
             </Button>
           </Box>
@@ -179,18 +114,10 @@ export default function GameDetailPage() {
         <TabPanel index={1} value={tab}>
           <Grid container spacing={3}>
             <Grid size={{ xs: 12, md: 4 }}>
-              <LobbyForm
-                onCreate={handleCreateLobby}
-              />
+              <LobbyForm onCreate={handleCreateLobby} />
             </Grid>
             <Grid size={{ xs: 12, md: 8 }}>
-              {lobbiesLoading ? (
-                <CircularProgress />
-              ) : lobbiesError ? (
-                <Alert severity="error">{lobbiesError}</Alert>
-              ) : (
-                <LobbyList lobbies={lobbies} onJoin={handleJoinLobby} />
-              )}
+              <LobbyList lobbies={lobbies} />
             </Grid>
           </Grid>
         </TabPanel>
