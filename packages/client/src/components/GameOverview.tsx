@@ -3,7 +3,7 @@
 import React from "react"
 import { Grid, Card, CardMedia, Box, Typography } from "@mui/material"
 import { People, Star } from "@mui/icons-material"
-import type { Game } from "../lib/dummy-data"
+import type { Game } from "../services/gamesService"
 
 interface Props { game: Game }
 
@@ -17,7 +17,7 @@ const GameOverview: React.FC<Props> = ({ game }) => (
 
     <Grid size={{ xs: 12, md: 7 }}>
       <Typography variant="h6" gutterBottom>
-        About&nbsp;the&nbsp;Game
+        Oyun Hakkında
       </Typography>
 
       <Typography paragraph mb={3}>

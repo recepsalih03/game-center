@@ -1,6 +1,6 @@
-import { Router } from "express";
+import { Router, RequestHandler } from "express";
 import { users } from "../../../config/users";
-import { createHash } from "crypto";
+import { hashData } from "../utils/hash";
 import {
   signAccess,
   signRefresh,
@@ -10,47 +10,53 @@ import {
 const router = Router();
 const refreshStore = new Set<string>();
 
-router.post("/login", (req, res) => {
-  const { email, password } = req.body;
+const loginHandler: RequestHandler = (req, res) => {
+  const { username, password } = req.body;
 
-  const user = users.find((u) => u.email === email);
+  if (!username || !password) {
+    res.status(400).json({ error: "Username and password are required" });
+    return;
+  }
+
+  const user = users.find((u) => u.username === username);
   if (!user) {
     res.status(401).json({ error: "Invalid credentials" });
     return;
   }
 
-  const hash = createHash("sha256").update(password).digest("hex");
-  if (hash !== user.passwordHash) {
+  const passwordHash = hashData(password);
+  if (passwordHash !== user.passwordHash) {
     res.status(401).json({ error: "Invalid credentials" });
     return;
   }
 
-  const accessToken = signAccess({ email: user.email });
-  const refreshToken = signRefresh({ email: user.email });
+  const accessToken = signAccess({ username: user.username });
+  const refreshToken = signRefresh({ username: user.username });
   refreshStore.add(refreshToken);
 
   res.json({
-    user: { email: user.email },
+    user: { username: user.username },
     accessToken,
     refreshToken,
   });
-});
+};
 
-router.post("/refresh", (req, res) => {
+const refreshHandler: RequestHandler = (req, res) => {
   const { refreshToken } = req.body;
-
   if (!refreshToken || !refreshStore.has(refreshToken)) {
     res.status(401).json({ error: "Invalid refresh token" });
     return;
   }
-
   try {
-    const payload = verifyRefresh(refreshToken) as any;
-    const newAccess = signAccess({ email: payload.email });
+    const payload = verifyRefresh(refreshToken) as { username: string };
+    const newAccess = signAccess({ username: payload.username });
     res.json({ accessToken: newAccess });
   } catch {
-    res.status(401).json({ error: "Refresh token expired" });
+    res.status(401).json({ error: "Refresh token expired or invalid" });
   }
-});
+};
+
+router.post("/login", loginHandler);
+router.post("/refresh", refreshHandler);
 
 export default router;

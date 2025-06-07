@@ -3,6 +3,7 @@ import React, {
   useState,
   ReactNode,
   useEffect,
+  useCallback,
 } from "react";
 import {
   login as apiLogin,
@@ -11,7 +12,7 @@ import {
 } from "../services/authService";
 
 interface User {
-  email: string;
+  username: string;
 }
 
 interface Session {
@@ -22,7 +23,7 @@ interface Session {
 
 interface AuthContextType {
   user: User | null;
-  login: (email: string, password: string) => Promise<void>;
+  login: (username: string, password: string) => Promise<void>;
   logout: () => void;
   isLoading: boolean;
   error: string | null;
@@ -32,28 +33,36 @@ export const AuthContext = createContext<AuthContextType>({
   user: null,
   login: async () => {},
   logout: () => {},
-  isLoading: false,
+  isLoading: true,
   error: null,
 });
 
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({
   children,
 }) => {
-  const initSess = apiGetSession();
-  const [user, setUser] = useState<User | null>(
-    initSess ? initSess.user : null
-  );
-  const [isLoading, setIsLoading] = useState(false);
+  const [user, setUser] = useState<User | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    try {
+      const currentSession = apiGetSession();
+      if (currentSession) {
+        setUser(currentSession.user);
+      }
+    } catch (e) {
+      console.error("Geçersiz oturum bilgisi:", e);
+      apiLogout();
+    } finally {
+      setIsLoading(false);
+    }
   }, []);
 
-  const login = async (email: string, password: string) => {
+  const login = async (username: string, password: string) => {
     setIsLoading(true);
     setError(null);
     try {
-      const sess: Session = await apiLogin(email, password);
+      const sess: Session = await apiLogin(username, password);
       setUser(sess.user);
       setIsLoading(false);
     } catch (err: any) {
@@ -63,10 +72,10 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
     }
   };
 
-  const logout = () => {
+  const logout = useCallback(() => {
     apiLogout();
     setUser(null);
-  };
+  }, []);
 
   return (
     <AuthContext.Provider value={{ user, login, logout, isLoading, error }}>

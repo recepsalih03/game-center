@@ -1,7 +1,10 @@
 import { Request, Response, NextFunction } from "express";
 import { verifyAccess } from "../utils/jwt";
+export interface AuthenticatedRequest extends Request {
+  user?: { username: string };
+}
 
-export function auth(req: Request, res: Response, next: NextFunction) {
+export function auth(req: AuthenticatedRequest, res: Response, next: NextFunction) {
   const header = req.headers.authorization || "";
   const [, token] = header.split(" ");
 
@@ -11,11 +14,10 @@ export function auth(req: Request, res: Response, next: NextFunction) {
   }
 
   try {
-    const payload = verifyAccess(token) as any;
-    (req as any).user = { email: payload.email };
+    const payload = verifyAccess(token) as { username: string };
+    req.user = { username: payload.username };
     next();
   } catch {
     res.status(401).json({ error: "Token invalid or expired" });
-    return;
   }
 }

@@ -10,16 +10,20 @@ import { SportsEsports } from "@mui/icons-material";
 import LoginIcon from "@mui/icons-material/Login";
 import LoginForm from "../components/LoginForm";
 import { AuthContext } from "../contexts/AuthContext";
-import { useNavigate, useLocation } from "react-router-dom";
+import { useNavigate, useLocation, Navigate } from "react-router-dom";
 
 const LoginPage: React.FC = () => {
   const [showPassword, setShowPassword] = useState(false);
-  const { login, isLoading, error } = useContext(AuthContext);
+  const { user, login, isLoading, error } = useContext(AuthContext);
   const navigate = useNavigate();
   const location = useLocation();
   const fromPath = (location.state as any)?.from?.pathname || "/";
 
   const handleClickShowPassword = () => setShowPassword((prev) => !prev);
+
+  if (user) {
+    return <Navigate to={fromPath} replace />;
+  }
 
   return (
     <Box
@@ -30,19 +34,11 @@ const LoginPage: React.FC = () => {
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
+        backgroundImage: "url('/toy-story-cloud.png')",
+        backgroundSize: "cover",
+        backgroundPosition: "center",
       }}
     >
-      <Box
-        sx={{
-          position: "absolute",
-          inset: 0,
-          backgroundImage: "url('/toy-story-cloud.png')",
-          backgroundSize: "cover",
-          backgroundPosition: "center",
-          zIndex: 0,
-        }}
-      />
-
       <Box
         sx={{
           position: "absolute",
@@ -55,7 +51,7 @@ const LoginPage: React.FC = () => {
       >
         <SportsEsports sx={{ fontSize: 32, color: "white", mr: 1 }} />
         <Typography variant="h5" fontWeight="bold" color="white">
-          Game Center
+          Oyun Merkezi
         </Typography>
       </Box>
 
@@ -91,7 +87,7 @@ const LoginPage: React.FC = () => {
         </Box>
 
         <Typography variant="h4" fontWeight="bold" align="center" gutterBottom>
-          Sign in to Game Center
+          Oyun Merkezi'ne Giriş Yap
         </Typography>
         <Typography
           variant="body1"
@@ -99,7 +95,7 @@ const LoginPage: React.FC = () => {
           align="center"
           sx={{ mb: 4 }}
         >
-          Access your game library, connect with friends, and discover new games
+          Oyun kütüphanene eriş, arkadaşlarınla bağlantı kur ve yeni oyunlar keşfet.
         </Typography>
 
         {error && (
@@ -114,9 +110,9 @@ const LoginPage: React.FC = () => {
           <LoginForm
             showPassword={showPassword}
             onTogglePassword={handleClickShowPassword}
-            onSubmit={async (email: string, password: string) => {
+            onSubmit={async (username, password) => {
               try {
-                await login(email, password);
+                await login(username, password);
                 navigate(fromPath, { replace: true });
               } catch {
               }

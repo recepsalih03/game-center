@@ -1,18 +1,21 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useContext } from "react";
 import {
   Box,
   Container,
   CssBaseline,
   ThemeProvider,
   createTheme,
-  Button,
+  CircularProgress,
   Typography,
 } from "@mui/material";
 import { useNavigate } from "react-router-dom";
+import { AuthContext } from "../contexts/AuthContext";
+import { Game, getGames } from "../services/gamesService";
 
 import HeaderBar from "../components/HeaderBar";
 import AvatarMenu from "../components/AvatarMenu";
 import ProfileDialog from "../components/ProfileDialog";
+import GamesGrid from "../components/GamesGrid";
 
 const lightTheme = createTheme({
   palette: {
@@ -22,95 +25,79 @@ const lightTheme = createTheme({
     background: { default: "#fafafa", paper: "#ffffff" },
   },
   shape: { borderRadius: 8 },
-  typography: {
-    fontFamily: '"Roboto","Helvetica","Arial",sans-serif',
-    h4: { fontWeight: 600 },
-    h5: { fontWeight: 600 },
-  },
 });
 
 const getUserInitials = (name: string) =>
-  name
-    .split(" ")
-    .map((n) => n[0])
-    .join("")
-    .toUpperCase();
+  name.split(" ").map((n) => n[0]).join("").toUpperCase();
 
 export default function HomePage() {
-  const [username] = useState("John Doe");
-  const [email] = useState("john.doe@example.com");
-  const [memberSince] = useState("Jan 2024");
+  const { user, logout } = useContext(AuthContext);
+  const navigate = useNavigate();
+
+  const [games, setGames] = useState<Game[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   const [menuAnchor, setMenuAnchor] = useState<HTMLElement | null>(null);
   const [profileOpen, setProfileOpen] = useState(false);
 
-  const navigate = useNavigate();
+  useEffect(() => {
+    const fetchGames = async () => {
+      setLoading(true);
+      try {
+        const gamesData = await getGames();
+        setGames(gamesData);
+        setError(null);
+      } catch (err) {
+        setError("Oyunlar yüklenemedi.");
+        console.error(err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchGames();
+  }, []);
 
   const handleLogout = () => {
-    localStorage.removeItem("token");
-    window.location.href = "/login";
+    logout();
+    navigate("/login");
   };
+
+  if (!user) {
+    return <CircularProgress />;
+  }
 
   return (
     <ThemeProvider theme={lightTheme}>
       <CssBaseline />
-
       <HeaderBar
-        username={username}
+        username={user.username}
         notifCount={0}
         onAvatarClick={(e) => setMenuAnchor(e.currentTarget)}
         getInitials={getUserInitials}
       />
-
       <AvatarMenu
         anchorEl={menuAnchor}
         onClose={() => setMenuAnchor(null)}
-        onProfile={() => {
-          setMenuAnchor(null);
-          setProfileOpen(true);
-        }}
-        onLogout={() => {
-          setMenuAnchor(null);
-          handleLogout();
-        }}
+        onProfile={() => { setProfileOpen(true); setMenuAnchor(null); }}
+        onLogout={handleLogout}
       />
-
       <ProfileDialog
         open={profileOpen}
         onClose={() => setProfileOpen(false)}
-        username={username}
-        email={email}
-        memberSince={memberSince}
+        username={user.username}
+        email={`${user.username}@example.com`}
+        memberSince="Jan 2025"
         getInitials={getUserInitials}
       />
-
-      <Container
-        maxWidth="sm"
-        sx={{
-          mt: 8,
-          mb: 8,
-          display: "flex",
-          flexDirection: "column",
-          alignItems: "center",
-          textAlign: "center",
-        }}
-      >
-        <Typography variant="h4" gutterBottom>
-          Tombala Oyununa Hoşgeldiniz
-        </Typography>
-        <Typography variant="body1" color="text.secondary" sx={{ mb: 4 }}>
-          Bu sayfadan doğrudan Tombala oyununu başlatabilirsiniz.
-        </Typography>
-
-        <Button
-          variant="contained"
-          color="primary"
-          size="large"
-          onClick={() => navigate("/play")}
-          sx={{ py: 1.5, px: 4 }}
-        >
-          Tombala Oyna
-        </Button>
+      <Container maxWidth="xl" sx={{ mt: 4, mb: 4 }}>
+        {loading ? (
+          <Box sx={{ display: 'flex', justifyContent: 'center' }}><CircularProgress /></Box>
+        ) : error ? (
+          <Typography color="error" textAlign="center">{error}</Typography>
+        ) : (
+          <GamesGrid games={games} />
+        )}
       </Container>
     </ThemeProvider>
   );

@@ -1,14 +1,25 @@
 export interface User {
-  email: string;
+  username: string;
   passwordHash: string;
 }
 
-const PASSWORD = "password";
-const REAL_HASH = "5e884898da28047151d0e56f8dc6292773603d0d6aabbdd62a11ef721d1542d8";
+const PASSWORD_HASH = "9ff12629127f90c21ef8618826848f76bcc0469969ec87e6c06da8ef7a77a649";
 
 export const users: User[] = [
   {
-    email: "employee@example.com",
-    passwordHash: REAL_HASH,
+    username: "recep_salih",
+    passwordHash: PASSWORD_HASH,
+  },
+  {
+    username: "emir_han",
+    passwordHash: PASSWORD_HASH,
+  },
+  {
+    username: "yusuf_talha",
+    passwordHash: PASSWORD_HASH,
+  },
+  {
+    username: "omer_batuhan",
+    passwordHash: PASSWORD_HASH,
   },
 ];
