@@ -13,6 +13,7 @@ import {
 import { useNavigate, useParams } from "react-router-dom";
 import { AuthContext } from "../contexts/AuthContext";
 import { useSocket } from "../contexts/SocketContext";
+import { useLobbyActions } from "../hooks/useLobbyActions";
 
 import HeaderBar from "../components/HeaderBar";
 import AvatarMenu from "../components/AvatarMenu";
@@ -35,7 +36,7 @@ export default function GameDetailPage() {
   const navigate = useNavigate();
   const { user, logout } = useContext(AuthContext);
   const socket = useSocket();
-
+  
   const [game, setGame] = useState<Game | null>(null);
   const [lobbies, setLobbies] = useState<Lobby[]>([]);
   const [loading, setLoading] = useState(true);
@@ -43,6 +44,8 @@ export default function GameDetailPage() {
   const [anchor, setAnchor] = useState<HTMLElement | null>(null);
   const [profile, setProfile] = useState(false);
   const [tab, setTab] = useState(0);
+
+  const { handleJoin, handleInvite } = useLobbyActions(game ? [game] : [], lobbies);
 
   const fetchGameData = useCallback(async () => {
     if (!id) return;
@@ -95,23 +98,20 @@ export default function GameDetailPage() {
   };
 
   const handleLogout = () => {
-    logout();
+    if (logout) logout();
     navigate("/login");
   };
 
   if (!user) {
-    return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
-        <CircularProgress />
-      </Box>
-    );
+    return <CircularProgress />;
   }
 
-  if (loading) return <Box sx={{ display: 'flex', justifyContent: 'center', mt: 5 }}><CircularProgress /></Box>;
+  if (loading) return <CircularProgress />;
   if (error) return <Container><Typography color="error">{error}</Typography></Container>;
   if (!game) return <Container><Typography>Oyun bulunamadı.</Typography></Container>;
 
   const initials = (name: string) => name.split(" ").map((x) => x[0]).join("").toUpperCase();
+  const tabLabels = ["Genel Bakış", "Lobiler", "Geçmiş", "Nasıl Oynanır", "Ayarlar"];
 
   return (
     <>
@@ -138,14 +138,14 @@ export default function GameDetailPage() {
       />
       <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
         <Tabs value={tab} onChange={(_, v) => setTab(v)} textColor="primary" indicatorColor="primary" sx={{ mb: 2 }}>
-          {["Genel Bakış", "Lobiler", "Geçmiş", "Nasıl Oynanır", "Ayarlar"].map((lbl, i) => (
-            <Tab key={i} label={lbl} />
+          {tabLabels.map((label, i) => (
+            <Tab key={i} label={label} />
           ))}
         </Tabs>
         <TabPanel index={0} value={tab}>
           <GameOverview game={game} />
           <Box mt={3}>
-            <Button variant="contained" size="large" onClick={() => navigate(`/play/${game.id}`)}>
+            <Button variant="contained" size="large" onClick={() => navigate(`/play/${game.id}`, { state: { lobbyId: `lobby_for_game_${game.id}` } })}>
               Oyunu Başlat
             </Button>
           </Box>
@@ -156,7 +156,7 @@ export default function GameDetailPage() {
               <LobbyForm onCreate={handleCreateLobby} />
             </Grid>
             <Grid size={{ xs: 12, md: 8 }}>
-              <LobbyList lobbies={lobbies} />
+              <LobbyList lobbies={lobbies} onJoin={handleJoin} onInvite={handleInvite} />
             </Grid>
           </Grid>
         </TabPanel>

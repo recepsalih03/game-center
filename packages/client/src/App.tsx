@@ -20,12 +20,23 @@ const App: React.FC = () => {
       <CssBaseline />
       <AuthProvider>
         <SocketProvider>
-          <ToastContainer position="top-right" autoClose={5000} hideProgressBar={false} />
           <BrowserRouter>
+            <ToastContainer position="top-right" autoClose={5000} hideProgressBar={false} />
             <Routes>
               <Route path="/login" element={<LoginPage />} />
-              <Route path="/play/:id" element={<GamePlayPage />} />
-              <Route path="/game/:id"element={<GameDetailPage />} />
+              
+              <Route path="/play/:id" element={
+                <PrivateRoute>
+                  <GamePlayPage />
+                </PrivateRoute>
+              } />
+
+              <Route path="/game/:id" element={
+                <PrivateRoute>
+                  <GameDetailPage />
+                </PrivateRoute>
+              } />
+              
               <Route
                 path="/"
                 element={
@@ -34,6 +45,7 @@ const App: React.FC = () => {
                   </PrivateRoute>
                 }
               />
+
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
           </BrowserRouter>

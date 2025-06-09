@@ -6,6 +6,7 @@ export interface Lobby {
   gameId: number;
   players: number;
   maxPlayers: number;
+  playerUsernames: string[];
   status: "open" | "full" | "in-progress";
 }
 
@@ -23,3 +24,8 @@ export const createLobby = async (name: string, gameId: number, maxPlayers: numb
   const response = await api.post('/lobbies', { name, gameId, maxPlayers });
   return response.data;
 };
+
+export const joinLobby = async (lobbyId: string): Promise<Lobby> => {
+  const response = await api.put(`/lobbies/${lobbyId}/join`);
+  return response.data;
+}

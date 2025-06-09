@@ -2,7 +2,7 @@ import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
 import { createServer } from "http";
-import { Server } from "socket.io";
+import { Server, Socket } from "socket.io";
 
 import publicRoutes from "./routes/public";
 import protectedRoutes from "./routes/protected";
@@ -47,103 +47,107 @@ interface TombalaGameState {
   drawnNumbers: Set<number>;
   intervalId: NodeJS.Timeout | null;
   players: string[];
+  cinko1: string | null;
+  cinko2: string | null;
+  tombala: string | null;
 }
 const activeTombalaGames = new Map<string, TombalaGameState>();
 
-interface Cell {
-  value: number | null;
-}
+interface Cell { value: number | null; }
 
-io.on("connection", (socket) => {
-  console.log(`🔌 Yeni bir kullanıcı bağlandı: ${socket.id}`);
-
+io.on("connection", (socket: Socket) => {
   socket.on('register_user', (username: string) => {
-    console.log(`Kullanıcı "${username}" soket ${socket.id} ile kaydedildi.`);
     userSocketMap.set(username, socket.id);
   });
 
-  socket.on('send_invite', ({ fromUser, toUser, gameId }) => {
-    console.log(`"${fromUser}" kullanıcısı "${toUser}" kullanıcısını ${gameId} oyununa davet ediyor.`);
+  socket.on('send_invite', ({ fromUser, toUser, lobbyId, lobbyName, gameTitle }: { fromUser: string, toUser: string, lobbyId: string, lobbyName: string, gameTitle: string }) => {
     const targetSocketId = userSocketMap.get(toUser);
-    const game = games.find(g => g.id === gameId);
-    if (targetSocketId && game) {
+    if (targetSocketId) {
       io.to(targetSocketId).emit('receive_invite', {
         fromUser,
-        gameTitle: game.title,
-        gameId,
+        lobbyId,
+        lobbyName,
+        gameTitle,
       });
     }
   });
 
   socket.on('join_game_room', (lobbyId: string) => {
     socket.join(lobbyId);
-    console.log(`Kullanıcı ${socket.id}, ${lobbyId} odasına katıldı.`);
   });
 
   socket.on('start_game', (lobbyId: string) => {
     if (activeTombalaGames.has(lobbyId)) return;
-    console.log(`${lobbyId} odasındaki oyun başlatılıyor.`);
     const availableNumbers = Array.from({ length: 90 }, (_, i) => i + 1);
-    activeTombalaGames.set(lobbyId, {
+    const newGameState: TombalaGameState = {
       drawnNumbers: new Set(),
       intervalId: null,
       players: [],
-    });
-    const gameState = activeTombalaGames.get(lobbyId)!;
-    gameState.intervalId = setInterval(() => {
+      cinko1: null,
+      cinko2: null,
+      tombala: null,
+    };
+    activeTombalaGames.set(lobbyId, newGameState);
+    io.to(lobbyId).emit('game_state_update', newGameState);
+    
+    newGameState.intervalId = setInterval(() => {
       if (availableNumbers.length === 0) {
-        clearInterval(gameState.intervalId!);
+        clearInterval(newGameState.intervalId!);
         return;
       }
       const randomIndex = Math.floor(Math.random() * availableNumbers.length);
       const newNumber = availableNumbers.splice(randomIndex, 1)[0];
-      gameState.drawnNumbers.add(newNumber);
-      console.log(`${lobbyId} odası için yeni sayı çekildi: ${newNumber}`);
+      newGameState.drawnNumbers.add(newNumber);
       io.to(lobbyId).emit('tombala_number_drawn', newNumber);
     }, 5000);
   });
 
-  socket.on('claim_win', ({ lobbyId, username, claimType, board }) => {
+  socket.on('claim_win', ({ lobbyId, username, claimType, board }: { lobbyId: string, username: string, claimType: 'cinko1' | 'cinko2' | 'tombala', board: Cell[][] }) => {
     const gameState = activeTombalaGames.get(lobbyId);
     if (!gameState) return;
+    
+    let isClaimAllowed = true;
+    if (claimType === 'cinko1' && gameState.cinko1) isClaimAllowed = false;
+    if (claimType === 'cinko2' && (gameState.cinko2 || !gameState.cinko1)) isClaimAllowed = false;
+    if (claimType === 'tombala' && (gameState.tombala || !gameState.cinko2)) isClaimAllowed = false;
+    
+    if (!isClaimAllowed) {
+      console.log(`"${claimType}" iddiasına şu an izin verilmiyor.`);
+      return;
+    }
 
-    console.log(`"${username}" kullanıcısı "${claimType}" iddiasında bulundu.`);
     let isWinValid = false;
     const drawnNumbers = gameState.drawnNumbers;
-
     if (claimType === 'tombala') {
       const allNumbersOnBoard = board.flat().filter((cell: Cell) => cell.value !== null).map((cell: Cell) => cell.value);
-      isWinValid = allNumbersOnBoard.every((num: number) => drawnNumbers.has(num!));
+      isWinValid = allNumbersOnBoard.every((num) => num !== null && drawnNumbers.has(num));
     } else {
+      let completedRows = 0;
       for (const row of board) {
         const numbersInRow = row.filter((cell: Cell) => cell.value !== null).map((cell: Cell) => cell.value);
-        if (numbersInRow.length > 0 && numbersInRow.every((num: number) => drawnNumbers.has(num!))) {
-          isWinValid = true;
-          break;
+        if (numbersInRow.length > 0 && numbersInRow.every((num) => num !== null && drawnNumbers.has(num))) {
+          completedRows++;
         }
       }
+      if (claimType === 'cinko1' && completedRows >= 1) isWinValid = true;
+      if (claimType === 'cinko2' && completedRows >= 2) isWinValid = true;
     }
 
     if (isWinValid) {
-      console.log(`"${username}" kullanıcısının "${claimType}" iddiası DOĞRU!`);
+      (gameState as any)[claimType] = username;
       io.to(lobbyId).emit('win_verified', { winnerUsername: username, claimType });
+      io.to(lobbyId).emit('game_state_update', gameState);
+      
       if (claimType === 'tombala' && gameState.intervalId) {
         clearInterval(gameState.intervalId);
         activeTombalaGames.delete(lobbyId);
-        console.log(`${lobbyId} odasındaki oyun sona erdi.`);
       }
-    } else {
-      console.log(`"${username}" kullanıcısının "${claimType}" iddiası YANLIŞ!`);
     }
   });
 
   socket.on("disconnect", () => {
-    console.log(`🔌 Kullanıcı bağlantısı kesildi: ${socket.id}`);
     userSocketMap.forEach((id, username) => {
-      if (id === socket.id) {
-        userSocketMap.delete(username);
-        console.log(`Kullanıcı "${username}" kaydı silindi.`);
-      }
+      if (id === socket.id) userSocketMap.delete(username);
     });
   });
 });

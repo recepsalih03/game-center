@@ -21,7 +21,7 @@ export default function Header({ username, onLogout }: Props) {
       <Toolbar>
         <SportsEsports color="primary" sx={{ mr: 1 }} />
         <Typography variant="h6" sx={{ fontWeight: "bold", flexGrow: 1 }}>
-          GameHub
+          Game Center
         </Typography>
 
         <IconButton color="inherit" sx={{ mr: 1 }}>

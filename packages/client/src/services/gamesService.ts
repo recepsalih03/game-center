@@ -7,6 +7,7 @@ export interface Game {
   players: number;
   category: string;
   rating: number;
+  description: string;
   howToPlaySteps: string[];
   gameComponent: string;
 }

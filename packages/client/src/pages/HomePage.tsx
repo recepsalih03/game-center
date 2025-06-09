@@ -12,6 +12,8 @@ import { AuthContext } from "../contexts/AuthContext";
 import { useSocket } from "../contexts/SocketContext";
 import { Game, getGames } from "../services/gamesService";
 import { Lobby, getAllLobbies, createLobby } from "../services/lobbiesService";
+import { useLobbyActions } from '../hooks/useLobbyActions';
+import { toast } from "react-toastify";
 
 import HeaderBar from "../components/HeaderBar";
 import AvatarMenu from "../components/AvatarMenu";
@@ -34,6 +36,8 @@ export default function HomePage() {
 
   const [menuAnchor, setMenuAnchor] = useState<HTMLElement | null>(null);
   const [profileOpen, setProfileOpen] = useState(false);
+  
+  const { handleJoin, handleInvite } = useLobbyActions(games, lobbies);
 
   useEffect(() => {
     const fetchInitialData = async () => {
@@ -78,22 +82,21 @@ export default function HomePage() {
   const handleCreateLobby = async (name: string, gameId: number, maxPlayers: number) => {
     try {
       await createLobby(name, gameId, maxPlayers);
-    } catch (err) {
-      alert("Lobi oluşturulurken bir hata oluştu.");
+      toast.success("Lobi başarıyla oluşturuldu!");
+    } catch (err: any) {
+      const errorMsg = err.response?.data?.error || "Lobi oluşturulurken bir hata oluştu.";
+      toast.error(errorMsg);
+      console.error("Lobi oluşturma hatası:", err.response);
     }
   };
 
   const handleLogout = () => {
-    logout();
+    if (logout) logout();
     navigate("/login");
   };
 
   if (!user) {
-    return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
-        <CircularProgress />
-      </Box>
-    );
+    return <CircularProgress />;
   }
 
   return (
@@ -135,6 +138,8 @@ export default function HomePage() {
               games={games}
               lobbies={lobbies}
               onCreateLobby={handleCreateLobby}
+              onJoin={handleJoin}
+              onInvite={handleInvite}
             />
           </Grid>
         </Grid>

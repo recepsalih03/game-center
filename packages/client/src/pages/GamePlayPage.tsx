@@ -23,52 +23,34 @@ export default function GamePlayPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [gameLog, setGameLog] = useState<string[]>([]);
+  const [gameState, setGameState] = useState<any>(null);
   
   const lobbyId = location.state?.lobbyId || `lobby_for_game_${gameId}`;
 
   useEffect(() => {
-    if (!gameId) {
-      setLoading(false);
-      setError("Oyun ID'si bulunamadı.");
-      return;
-    }
-    getGameById(gameId)
-      .then(data => {
-        setGame(data);
-        setLoading(false);
-      })
-      .catch(() => {
-        setError("Oyun bilgileri yüklenemedi.");
-        setLoading(false);
-      });
+    if (!gameId) { setLoading(false); setError("Oyun ID'si bulunamadı."); return; }
+    getGameById(gameId).then(data => { setGame(data); setLoading(false); }).catch(() => { setError("Oyun bilgileri yüklenemedi."); setLoading(false); });
   }, [gameId]);
 
   useEffect(() => {
     if (!socket) return;
     const handleWinVerified = ({ winnerUsername, claimType }: { winnerUsername: string, claimType: string }) => {
-      const message = `🎉 ${winnerUsername}, ${claimType.toUpperCase()} yaptı! Tebrikler! 🎉`;
-      setGameLog((prevLog) => [...prevLog, message]);
+      setGameLog((prevLog) => [...prevLog, `🎉 ${winnerUsername}, ${claimType.toUpperCase()} yaptı! 🎉`]);
+    };
+    const handleGameStateUpdate = (state: any) => {
+      setGameState(state);
     };
     socket.on('win_verified', handleWinVerified);
+    socket.on('game_state_update', handleGameStateUpdate);
     return () => {
       socket.off('win_verified', handleWinVerified);
+      socket.off('game_state_update', handleGameStateUpdate);
     };
   }, [socket]);
 
-  const renderGameComponent = () => {
-    if (!game) return null;
-
-    switch (game.gameComponent) {
-      case "TombalaBoard":
-        return <TombalaBoard socket={socket} lobbyId={lobbyId} username={user ? user.username : null} />;
-      
-      default:
-        return <Typography>Bu oyun bileşeni henüz desteklenmiyor.</Typography>;
-    }
-  };
-
   if (loading) return <CircularProgress />;
   if (error) return <Typography color="error">{error}</Typography>;
+  if (!user || !game) return <Typography>Oyun veya kullanıcı bilgisi bulunamadı.</Typography>;
 
   return (
     <>
@@ -80,11 +62,13 @@ export default function GamePlayPage() {
               {game?.title} - Lobi: {lobbyId}
             </Typography>
             <Box sx={{ width: "100%", mt: 2 }}>
-              {renderGameComponent()}
+              <TombalaBoard socket={socket} lobbyId={lobbyId} username={user.username} gameState={gameState} />
             </Box>
           </Box>
           <Box sx={{ flex: 1 }}>
             <Typography variant="h6" gutterBottom>Oyun Olayları</Typography>
+            {gameState?.cinko1 && <Typography>1. Çinko: {gameState.cinko1}</Typography>}
+            {gameState?.cinko2 && <Typography>2. Çinko: {gameState.cinko2}</Typography>}
             <List dense>
               {gameLog.map((log, index) => (
                 <ListItem key={index}>

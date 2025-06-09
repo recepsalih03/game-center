@@ -20,15 +20,24 @@ export async function login(
   }
 
   const data: Session = await res.json();
+  
   localStorage.setItem("app-session", JSON.stringify(data));
   localStorage.setItem("accessToken", data.accessToken);
   localStorage.setItem("refreshToken", data.refreshToken);
+  
+  console.log(`Login Service (${username}): Token kaydedildi:`, data.accessToken);
+
   return data;
 }
 
 export function getSession(): Session | null {
   const raw = localStorage.getItem("app-session");
-  return raw ? JSON.parse(raw) : null;
+  if (!raw) return null;
+  try {
+    return JSON.parse(raw);
+  } catch (error) {
+    return null;
+  }
 }
 
 export function logout(): void {

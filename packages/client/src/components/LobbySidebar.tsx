@@ -12,28 +12,34 @@ interface Props {
   games: Game[];
   lobbies: Lobby[];
   onCreateLobby: (name: string, gameId: number, maxPlayers: number) => void;
+  onJoin: (lobbyId: string, gameId: number) => void;
+  onInvite: (lobbyId: string, lobbyName: string) => void;
 }
 
-export default function LobbySidebar({ games, lobbies, onCreateLobby }: Props) {
+export default function LobbySidebar({ games, lobbies, onCreateLobby, onJoin, onInvite }: Props) {
   const socket = useSocket();
   const { user } = useContext(AuthContext);
 
-  const handleInvite = () => {
+  const handleGlobalInvite = () => {
     if (!user) {
       alert("Davet göndermek için giriş yapmış olmalısınız.");
       return;
     }
-
     const toUser = prompt("Kimi davet etmek istersiniz? (Kullanıcı adını girin)");
     const gameId = prompt("Hangi oyuna davet etmek istersiniz? (Oyun ID'sini girin)");
     
     if (toUser && gameId && socket) {
-      socket.emit('send_invite', {
-        fromUser: user.username,
-        toUser: toUser,
-        gameId: Number(gameId)
-      });
-      alert(`${toUser} kullanıcısına davet gönderildi!`);
+      const game = games.find(g => g.id === Number(gameId));
+      if (game) {
+        socket.emit('send_invite', {
+          fromUser: user.username,
+          toUser: toUser,
+          lobbyId: '', 
+          lobbyName: game.title + ' oyunu',
+          gameTitle: game.title,
+        });
+        alert(`${toUser} kullanıcısına davet gönderildi!`);
+      }
     }
   };
 
@@ -42,15 +48,12 @@ export default function LobbySidebar({ games, lobbies, onCreateLobby }: Props) {
       <Typography variant="h5" gutterBottom>
         Oyun Lobileri
       </Typography>
-      <Button variant="outlined" fullWidth onClick={handleInvite} sx={{ mb: 2 }}>
+      <Button variant="outlined" fullWidth onClick={handleGlobalInvite} sx={{ mb: 2 }}>
         Oyuncu Davet Et
       </Button>
       <LobbyForm games={games} onCreate={onCreateLobby} />
       <Divider sx={{ my: 2 }} />
-      <Typography variant="subtitle1" gutterBottom>
-        Aktif Lobiler
-      </Typography>
-      <LobbyList lobbies={lobbies} />
+      <LobbyList lobbies={lobbies} onJoin={onJoin} onInvite={onInvite} />
     </Paper>
   );
 }

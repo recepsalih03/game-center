@@ -6,6 +6,7 @@ export interface Lobby {
   gameId: number;
   players: number;
   maxPlayers: number;
+  playerUsernames: string[];
   status: "open" | "full" | "in-progress";
   createdAt: Date;
 }
@@ -17,6 +18,7 @@ export interface Game {
   players: number;
   category: string;
   rating: number;
+  description: string;
   howToPlaySteps: string[];
   gameComponent: string;
 }
@@ -29,6 +31,7 @@ export const games: Game[] = [
     players: 0, 
     category: "Board Game", 
     rating: 4.5,
+    description: "Klasik tombala oyunu. Kartınızdaki tüm sayıları ilk siz tamamlayın ve kazanın!",
     howToPlaySteps: [
       "Her oyuncu bir veya daha fazla kart alır.",
       "Sayılar çekilir ve oyuncular kartlarındaki sayıları işaretler.",
@@ -43,15 +46,17 @@ export const lobbies: Lobby[] = [];
 export function createLobby(
   name: string,
   gameId: number,
-  maxPlayers: number
+  maxPlayers: number,
+  creatorUsername: string,
 ): Lobby {
   const newLobby: Lobby = {
     id: uuidv4(),
     name,
     gameId,
-    players: 0,
+    players: 1,
     maxPlayers,
-    status: "open",
+    playerUsernames: [creatorUsername],
+    status: maxPlayers === 1 ? "full" : "open",
     createdAt: new Date(),
   };
   lobbies.push(newLobby);

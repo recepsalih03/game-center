@@ -1,16 +1,15 @@
-"use client"
-import React from "react"
+import React from "react";
 import {
   AppBar, Toolbar, IconButton, Avatar, Badge, Typography, Box,
-} from "@mui/material"
-import { Notifications, SportsEsports, Brightness4, Brightness7 } from "@mui/icons-material"
+} from "@mui/material";
+import { Notifications, SportsEsports, Brightness4, Brightness7 } from "@mui/icons-material";
 import { useThemeContext } from "../contexts/ThemeContext";
 
 interface Props {
-  username: string
-  notifCount: number
-  onAvatarClick: (e: React.MouseEvent<HTMLElement>) => void
-  getInitials: (name: string) => string
+  username: string;
+  notifCount: number;
+  onAvatarClick: (e: React.MouseEvent<HTMLElement>) => void;
+  getInitials: (name: string) => string;
 }
 
 export default function HeaderBar({ username, notifCount, onAvatarClick, getInitials }: Props) {
@@ -21,7 +20,7 @@ export default function HeaderBar({ username, notifCount, onAvatarClick, getInit
       <Toolbar>
         <SportsEsports sx={{ mr: 1 }} color="primary" />
         <Typography variant="h6" sx={{ fontWeight: "bold", flexGrow: 1 }}>
-          GameHub
+          Game Center
         </Typography>
         
         <IconButton sx={{ ml: 1 }} onClick={toggleTheme} color="inherit">
@@ -40,5 +39,5 @@ export default function HeaderBar({ username, notifCount, onAvatarClick, getInit
         </IconButton>
       </Toolbar>
     </AppBar>
-  )
+  );
 }

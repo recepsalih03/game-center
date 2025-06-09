@@ -1,7 +1,9 @@
-import React, { createContext, useContext, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useEffect, ReactNode, useRef } from 'react';
 import { io, Socket } from 'socket.io-client';
 import { AuthContext } from './AuthContext';
 import { toast } from 'react-toastify';
+import InviteNotification from '../components/InviteNotification';
+import { usePageFocus } from '../hooks/usePageFocus';
 
 const SOCKET_URL = 'http://localhost:4000';
 
@@ -11,8 +13,33 @@ export const useSocket = () => {
   return useContext(SocketContext);
 };
 
+const flashTitle = (newTitle: string, originalTitle: string, duration: number) => {
+  let isFlashing = true;
+  let counter = 0;
+  const interval = setInterval(() => {
+    if (!isFlashing) {
+      clearInterval(interval);
+      document.title = originalTitle;
+      return;
+    }
+    document.title = document.title === originalTitle ? newTitle : originalTitle;
+    counter++;
+    if (counter >= duration * 2) {
+      isFlashing = false;
+    }
+  }, 500);
+
+  const stopFlashing = () => {
+    isFlashing = false;
+  };
+  window.addEventListener('focus', stopFlashing, { once: true });
+};
+
 export const SocketProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const { user } = useContext(AuthContext);
+  const isPageFocused = usePageFocus();
+  const originalTitleRef = useRef(document.title);
+
   const socket = io(SOCKET_URL, {
     reconnection: true,
     transports: ['websocket'],
@@ -24,18 +51,25 @@ export const SocketProvider: React.FC<{ children: ReactNode }> = ({ children }) 
       socket.connect();
 
       socket.on('connect', () => {
-        console.log('✅ Socket.IO sunucusuna bağlandı:', socket.id);
         socket.emit('register_user', user.username);
       });
 
-      // DÜZELTME: Davet alma olayını dinliyoruz
-      socket.on('receive_invite', ({ fromUser, gameTitle, gameId }) => {
-        toast.info(`💌 ${fromUser} sizi "${gameTitle}" oynamaya davet ediyor!`);
+      socket.on('receive_invite', (data) => {
+        toast(<InviteNotification {...data} />);
+        
+        if (!isPageFocused) {
+          try {
+            const audio = new Audio('/notification.mp3');
+            const playPromise = audio.play();
+            if (playPromise !== undefined) {
+              playPromise.catch(error => {});
+            }
+          } catch(e) {}
+          flashTitle(`💌 Yeni Davet!`, originalTitleRef.current, 6);
+        }
       });
 
-      socket.on('disconnect', () => {
-        console.log('❌ Socket.IO sunucu bağlantısı kesildi.');
-      });
+      socket.on('disconnect', () => {});
     }
 
     return () => {
@@ -43,7 +77,7 @@ export const SocketProvider: React.FC<{ children: ReactNode }> = ({ children }) 
         socket.disconnect();
       }
     };
-  }, [user, socket]);
+  }, [user, socket, isPageFocused]);
 
   return (
     <SocketContext.Provider value={socket}>
