@@ -1,42 +1,76 @@
 "use client"
-import React from "react"
-import { Box, TextField, Button, Typography } from "@mui/material"
+import React, { useState } from "react"
+import { Box, TextField, Button, Typography, MenuItem } from "@mui/material"
 import { Add } from "@mui/icons-material"
-import { GameCardProps } from "./GameCard"
+import { Game } from "../services/gamesService"
 
 interface Props {
-  newLobbyName: string
-  setNewLobbyName: (v: string) => void
-  selectedGame: string
-  setSelectedGame: (v: string) => void
-  maxPlayers: number
-  setMaxPlayers: (v: number) => void
-  games: GameCardProps[]
-  onCreate: () => void
+  games: Game[];
+  onCreate: (name: string, gameId: number, maxPlayers: number) => void;
 }
 
-export default function LobbyForm({
-  newLobbyName, setNewLobbyName,
-  selectedGame, setSelectedGame,
-  maxPlayers, setMaxPlayers,
-  games, onCreate,
-}: Props) {
+export default function LobbyForm({ games, onCreate }: Props) {
+  const [lobbyName, setLobbyName] = useState("");
+  const [selectedGameId, setSelectedGameId] = useState<number | string>("");
+  const [maxPlayers, setMaxPlayers] = useState(4);
+
+  const handleCreate = () => {
+    if (!lobbyName || !selectedGameId) {
+      alert("Lütfen lobi adını ve oyunu seçin.");
+      return;
+    }
+    onCreate(lobbyName, Number(selectedGameId), maxPlayers);
+    setLobbyName("");
+    setSelectedGameId("");
+    setMaxPlayers(4);
+  };
+
   return (
     <Box mb={4}>
-      <Typography variant="subtitle1" gutterBottom>Create New Lobby</Typography>
-      <TextField fullWidth label="Lobby Name" margin="dense" size="small"
-        value={newLobbyName} onChange={(e)=>setNewLobbyName(e.target.value)} />
-      <TextField select fullWidth label="Select Game" margin="dense" size="small"
-        value={selectedGame} onChange={(e)=>setSelectedGame(e.target.value)}
-        SelectProps={{ native: true }}>
-        <option value="" />
-        {games.map((g)=> <option key={g.title} value={g.title}>{g.title}</option>)}
+      <Typography variant="subtitle1" gutterBottom>Yeni Lobi Oluştur</Typography>
+      <TextField
+        fullWidth
+        label="Lobi Adı"
+        margin="dense"
+        size="small"
+        value={lobbyName}
+        onChange={(e) => setLobbyName(e.target.value)}
+      />
+      <TextField
+        select
+        fullWidth
+        label="Oyun Seç"
+        margin="dense"
+        size="small"
+        value={selectedGameId}
+        onChange={(e) => setSelectedGameId(Number(e.target.value))}
+      >
+        <MenuItem value="" disabled><em>Oyun Seçiniz</em></MenuItem>
+        {games.map((game) => (
+          <MenuItem key={game.id} value={game.id}>
+            {game.title}
+          </MenuItem>
+        ))}
       </TextField>
-      <TextField fullWidth label="Max Players" type="number" margin="dense" size="small"
-        InputProps={{ inputProps: { min:2, max:10 } }}
-        value={maxPlayers} onChange={(e)=>setMaxPlayers(Number(e.target.value))} />
-      <Button variant="contained" color="success" startIcon={<Add />} fullWidth sx={{ mt:1.5 }} onClick={onCreate}>
-        Create Lobby
+      <TextField
+        fullWidth
+        label="Max Oyuncu"
+        type="number"
+        margin="dense"
+        size="small"
+        InputProps={{ inputProps: { min: 2, max: 10 } }}
+        value={maxPlayers}
+        onChange={(e) => setMaxPlayers(Number(e.target.value))}
+      />
+      <Button
+        variant="contained"
+        color="success"
+        startIcon={<Add />}
+        fullWidth
+        sx={{ mt: 1.5 }}
+        onClick={handleCreate}
+      >
+        Lobi Oluştur
       </Button>
     </Box>
   )

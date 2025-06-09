@@ -7,22 +7,26 @@ import {
   createTheme,
   CircularProgress,
   Typography,
+  Grid,
 } from "@mui/material";
 import { useNavigate } from "react-router-dom";
 import { AuthContext } from "../contexts/AuthContext";
+import { useSocket } from "../contexts/SocketContext";
 import { Game, getGames } from "../services/gamesService";
+import { Lobby, getAllLobbies, createLobby } from "../services/lobbiesService";
 
 import HeaderBar from "../components/HeaderBar";
 import AvatarMenu from "../components/AvatarMenu";
 import ProfileDialog from "../components/ProfileDialog";
 import GamesGrid from "../components/GamesGrid";
+import LobbySidebar from "../components/LobbySidebar";
 
 const lightTheme = createTheme({
   palette: {
     mode: "light",
     primary: { main: "#1976d2" },
     secondary: { main: "#ff9800" },
-    background: { default: "#fafafa", paper: "#ffffff" },
+    background: { default: "#f8f9fa", paper: "#ffffff" },
   },
   shape: { borderRadius: 8 },
 });
@@ -31,10 +35,12 @@ const getUserInitials = (name: string) =>
   name.split(" ").map((n) => n[0]).join("").toUpperCase();
 
 export default function HomePage() {
-  const { user, logout } = useContext(AuthContext);
+  const { user, logout } = useContext(AuthContext)!;
+  const socket = useSocket();
   const navigate = useNavigate();
 
   const [games, setGames] = useState<Game[]>([]);
+  const [lobbies, setLobbies] = useState<Lobby[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -42,30 +48,59 @@ export default function HomePage() {
   const [profileOpen, setProfileOpen] = useState(false);
 
   useEffect(() => {
-    const fetchGames = async () => {
+    const fetchInitialData = async () => {
       setLoading(true);
       try {
         const gamesData = await getGames();
+        const lobbiesData = await getAllLobbies();
         setGames(gamesData);
+        setLobbies(lobbiesData);
         setError(null);
       } catch (err) {
-        setError("Oyunlar yüklenemedi.");
+        setError("Veriler yüklenemedi.");
         console.error(err);
       } finally {
         setLoading(false);
       }
     };
-    fetchGames();
+    fetchInitialData();
   }, []);
+
+  useEffect(() => {
+    if (!socket) return;
+    const handleLobbyCreated = (newLobby: Lobby) => {
+      setLobbies((prev) => [...prev, newLobby]);
+    };
+    const handleLobbyUpdated = (updatedLobby: Lobby) => {
+      setLobbies((prev) => prev.map((l) => (l.id === updatedLobby.id ? updatedLobby : l)));
+    };
+    const handleLobbyDeleted = (data: { id: string }) => {
+      setLobbies((prev) => prev.filter((l) => l.id !== data.id));
+    };
+    socket.on('lobby_created', handleLobbyCreated);
+    socket.on('lobby_updated', handleLobbyUpdated);
+    socket.on('lobby_deleted', handleLobbyDeleted);
+    return () => {
+      socket.off('lobby_created', handleLobbyCreated);
+      socket.off('lobby_updated', handleLobbyUpdated);
+      socket.off('lobby_deleted', handleLobbyDeleted);
+    };
+  }, [socket]);
+
+  const handleCreateLobby = async (name: string, gameId: number, maxPlayers: number) => {
+    try {
+      await createLobby(name, gameId, maxPlayers);
+    } catch (err) {
+      alert("Lobi oluşturulurken bir hata oluştu.");
+    }
+  };
 
   const handleLogout = () => {
     logout();
     navigate("/login");
   };
 
-  if (!user) {
-    return <CircularProgress />;
-  }
+  if (!user) return <CircularProgress />;
 
   return (
     <ThemeProvider theme={lightTheme}>
@@ -91,13 +126,24 @@ export default function HomePage() {
         getInitials={getUserInitials}
       />
       <Container maxWidth="xl" sx={{ mt: 4, mb: 4 }}>
-        {loading ? (
-          <Box sx={{ display: 'flex', justifyContent: 'center' }}><CircularProgress /></Box>
-        ) : error ? (
-          <Typography color="error" textAlign="center">{error}</Typography>
-        ) : (
-          <GamesGrid games={games} />
-        )}
+        <Grid container spacing={3}>
+          <Grid size={{ xs: 12, md: 8, lg:9 }}>
+            {loading ? (
+              <CircularProgress />
+            ) : error ? (
+              <Typography color="error">{error}</Typography>
+            ) : (
+              <GamesGrid games={games} />
+            )}
+          </Grid>
+          <Grid size={{ xs: 12, md: 4, lg:3 }}>
+            <LobbySidebar
+              games={games}
+              lobbies={lobbies}
+              onCreateLobby={handleCreateLobby}
+            />
+          </Grid>
+        </Grid>
       </Container>
     </ThemeProvider>
   );

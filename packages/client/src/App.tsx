@@ -5,6 +5,9 @@ import { getTheme } from "./theme";
 import { AuthProvider } from "./contexts/AuthContext";
 import { SocketProvider } from "./contexts/SocketContext";
 
+import { ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
+
 import LoginPage from "./pages/LoginPage";
 import HomePage from "./pages/HomePage";
 import GameDetailPage from "./pages/GameDetailPage";
@@ -20,12 +23,12 @@ const App: React.FC = () => {
       <CssBaseline />
       <AuthProvider>
         <SocketProvider>
+          <ToastContainer position="top-right" autoClose={5000} hideProgressBar={false} />
           <BrowserRouter>
             <Routes>
               <Route path="/login" element={<LoginPage />} />
               <Route path="/play/:id" element={<GamePlayPage />} />
               <Route path="/game/:id" element={<GameDetailPage />} />
-
               <Route
                 path="/"
                 element={

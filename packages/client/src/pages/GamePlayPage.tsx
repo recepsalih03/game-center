@@ -7,13 +7,9 @@ import {
   createTheme,
   Typography,
 } from "@mui/material";
-import { useNavigate } from "react-router-dom";
-
-import HeaderBar from "../components/HeaderBar";
-import AvatarMenu from "../components/AvatarMenu";
-import ProfileDialog from "../components/ProfileDialog";
-
+import { useParams } from "react-router-dom";
 import { TombalaBoard } from "game-tombala";
+import { useSocket } from "../contexts/SocketContext";
 
 const lightTheme = createTheme({
   palette: {
@@ -24,50 +20,16 @@ const lightTheme = createTheme({
 });
 
 export default function GamePlayPage() {
-  const navigate = useNavigate();
+  const { id: lobbyId } = useParams<{ id: string }>();
+  const socket = useSocket();
 
-  const [anchor, setAnchor] = React.useState<HTMLElement | null>(null);
-  const [profile, setProfile] = React.useState(false);
-  const initials = (n: string) =>
-    n
-      .split(" ")
-      .map((x) => x[0])
-      .join("")
-      .toUpperCase();
+  if (!lobbyId) {
+    return <Typography>Lobi ID'si bulunamadı.</Typography>;
+  }
 
   return (
     <ThemeProvider theme={lightTheme}>
       <CssBaseline />
-
-      <HeaderBar
-        username="John Doe"
-        notifCount={0}
-        onAvatarClick={(e) => setAnchor(e.currentTarget)}
-        getInitials={initials}
-      />
-
-      <AvatarMenu
-        anchorEl={anchor}
-        onClose={() => setAnchor(null)}
-        onProfile={() => {
-          setAnchor(null);
-          setProfile(true);
-        }}
-        onLogout={() => {
-          localStorage.removeItem("token");
-          navigate("/login");
-        }}
-      />
-
-      <ProfileDialog
-        open={profile}
-        onClose={() => setProfile(false)}
-        username="John Doe"
-        email="john.doe@example.com"
-        memberSince="Jan 2024"
-        getInitials={initials}
-      />
-
       <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
         <Box
           sx={{
@@ -80,11 +42,10 @@ export default function GamePlayPage() {
           }}
         >
           <Typography variant="h5" gutterBottom>
-            Tombala Kartınızı Aşağıda Görüntüleyebilirsiniz
+            Tombala Oyunu - Lobi: {lobbyId}
           </Typography>
-
           <Box sx={{ width: "100%", mt: 2 }}>
-            <TombalaBoard />
+            <TombalaBoard socket={socket} lobbyId={lobbyId} />
           </Box>
         </Box>
       </Container>

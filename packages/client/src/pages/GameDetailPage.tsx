@@ -106,12 +106,16 @@ export default function GameDetailPage() {
   };
 
   if (!user) {
-    return <CircularProgress />;
+    return (
+      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
+        <CircularProgress />
+      </Box>
+    );
   }
-  
+
   if (loading) return <Box sx={{ display: 'flex', justifyContent: 'center', mt: 5 }}><CircularProgress /></Box>;
-  if (error) return <Container><Typography color="error">{error}</Typography></Container>;
-  if (!game) return <Container><Typography>Oyun bulunamadı.</Typography></Container>;
+  if (error) return <Container><Typography color="error" textAlign="center">{error}</Typography></Container>;
+  if (!game) return <Container><Typography textAlign="center">Oyun bulunamadı.</Typography></Container>;
 
   const initials = (name: string) => name.split(" ").map((x) => x[0]).join("").toUpperCase();
 
@@ -147,8 +151,18 @@ export default function GameDetailPage() {
         <TabPanel index={0} value={tab}>
           <GameOverview game={game} />
           <Box mt={3}>
-            <Button variant="contained" size="large" onClick={() => navigate(`/play/${game.id}`)}>
-              Oyunu Başlat
+            <Button
+              variant="contained"
+              size="large"
+              onClick={() => {
+                if (socket) {
+                  const lobbyId = `lobby_for_game_${game.id}`;
+                  socket.emit('start_game', lobbyId);
+                  navigate(`/play/${lobbyId}`);
+                }
+              }}
+            >
+              Test Oyunu Başlat
             </Button>
           </Box>
         </TabPanel>

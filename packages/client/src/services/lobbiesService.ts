@@ -9,6 +9,11 @@ export interface Lobby {
   status: "open" | "full" | "in-progress";
 }
 
+export const getAllLobbies = async (): Promise<Lobby[]> => {
+  const response = await api.get('/lobbies');
+  return response.data;
+}
+
 export const getLobbiesByGameId = async (gameId: string): Promise<Lobby[]> => {
   const response = await api.get(`/lobbies?gameId=${gameId}`);
   return response.data;
