@@ -114,7 +114,8 @@ const LoginPage: React.FC = () => {
               try {
                 await login(username, password);
                 navigate(fromPath, { replace: true });
-              } catch {
+              } catch (err: any) {
+                console.error("Giriş hatası:", err);
               }
             }}
           />

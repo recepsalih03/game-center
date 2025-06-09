@@ -3,8 +3,6 @@ import {
   Box,
   Container,
   CssBaseline,
-  ThemeProvider,
-  createTheme,
   Tabs,
   Tab,
   Grid,
@@ -27,10 +25,6 @@ import LobbyForm from "../components/GameLobbySection/LobbyForm";
 import LobbyList from "../components/GameLobbySection/LobbyList";
 import { Game, getGameById } from "../services/gamesService";
 import { Lobby, getLobbiesByGameId, createLobby } from "../services/lobbiesService";
-
-const lightTheme = createTheme({
-  palette: { mode: "light", primary: { main: "#1976d2" }, secondary: { main: "#ff9800" } },
-});
 
 const TabPanel: React.FC<{ index: number; value: number; children: React.ReactNode }> = ({
   index, value, children,
@@ -114,13 +108,13 @@ export default function GameDetailPage() {
   }
 
   if (loading) return <Box sx={{ display: 'flex', justifyContent: 'center', mt: 5 }}><CircularProgress /></Box>;
-  if (error) return <Container><Typography color="error" textAlign="center">{error}</Typography></Container>;
-  if (!game) return <Container><Typography textAlign="center">Oyun bulunamadı.</Typography></Container>;
+  if (error) return <Container><Typography color="error">{error}</Typography></Container>;
+  if (!game) return <Container><Typography>Oyun bulunamadı.</Typography></Container>;
 
   const initials = (name: string) => name.split(" ").map((x) => x[0]).join("").toUpperCase();
 
   return (
-    <ThemeProvider theme={lightTheme}>
+    <>
       <CssBaseline />
       <HeaderBar
         username={user.username}
@@ -151,18 +145,8 @@ export default function GameDetailPage() {
         <TabPanel index={0} value={tab}>
           <GameOverview game={game} />
           <Box mt={3}>
-            <Button
-              variant="contained"
-              size="large"
-              onClick={() => {
-                if (socket) {
-                  const lobbyId = `lobby_for_game_${game.id}`;
-                  socket.emit('start_game', lobbyId);
-                  navigate(`/play/${lobbyId}`);
-                }
-              }}
-            >
-              Test Oyunu Başlat
+            <Button variant="contained" size="large" onClick={() => navigate(`/play/${game.id}`)}>
+              Oyunu Başlat
             </Button>
           </Box>
         </TabPanel>
@@ -180,12 +164,12 @@ export default function GameDetailPage() {
           <GameHistory history={[]} />
         </TabPanel>
         <TabPanel index={3} value={tab}>
-          <HowToPlay steps={["WASD ile hareket et", "Mouse ile nişan al", "SPACE ile zıpla"]} />
+          <HowToPlay steps={game.howToPlaySteps} />
         </TabPanel>
         <TabPanel index={4} value={tab}>
           <GameSettings onSave={(s) => console.log("Ayarlar kaydedildi", s)} />
         </TabPanel>
       </Container>
-    </ThemeProvider>
+    </>
   );
 }

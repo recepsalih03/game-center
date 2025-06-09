@@ -17,15 +17,25 @@ export interface Game {
   players: number;
   category: string;
   rating: number;
+  howToPlaySteps: string[];
+  gameComponent: string;
 }
 
 export const games: Game[] = [
-  { id: 1, title: "Epic Adventure", imageUrl: "/placeholder.svg", players: 1243, category: "RPG", rating: 4.8 },
-  { id: 2, title: "Space Explorers", imageUrl: "/placeholder.svg", players: 876, category: "Strategy", rating: 4.5 },
-  { id: 3, title: "Racing Champions", imageUrl: "/placeholder.svg", players: 2341, category: "Racing", rating: 4.2 },
-  { id: 4, title: "Battle Royale", imageUrl: "/placeholder.svg", players: 5432, category: "Action", rating: 4.7 },
-  { id: 5, title: "Puzzle Master", imageUrl: "/placeholder.svg", players: 654, category: "Puzzle", rating: 4.3 },
-  { id: 6, title: "Fantasy World", imageUrl: "/placeholder.svg", players: 1876, category: "MMORPG", rating: 4.6 },
+  { 
+    id: 1, 
+    title: "Tombala", 
+    imageUrl: "https://via.placeholder.com/280x150.png/007BFF/FFFFFF?Text=Tombala", 
+    players: 0, 
+    category: "Board Game", 
+    rating: 4.5,
+    howToPlaySteps: [
+      "Her oyuncu bir veya daha fazla kart alır.",
+      "Sayılar çekilir ve oyuncular kartlarındaki sayıları işaretler.",
+      "Bir sırayı tamamlayan 'Çinko', tüm kartı tamamlayan 'Tombala' yapar."
+    ],
+    gameComponent: "TombalaBoard"
+  },
 ];
 
 export const lobbies: Lobby[] = [];

@@ -3,8 +3,6 @@ import {
   Box,
   Container,
   CssBaseline,
-  ThemeProvider,
-  createTheme,
   CircularProgress,
   Typography,
   Grid,
@@ -21,21 +19,11 @@ import ProfileDialog from "../components/ProfileDialog";
 import GamesGrid from "../components/GamesGrid";
 import LobbySidebar from "../components/LobbySidebar";
 
-const lightTheme = createTheme({
-  palette: {
-    mode: "light",
-    primary: { main: "#1976d2" },
-    secondary: { main: "#ff9800" },
-    background: { default: "#f8f9fa", paper: "#ffffff" },
-  },
-  shape: { borderRadius: 8 },
-});
-
 const getUserInitials = (name: string) =>
   name.split(" ").map((n) => n[0]).join("").toUpperCase();
 
 export default function HomePage() {
-  const { user, logout } = useContext(AuthContext)!;
+  const { user, logout } = useContext(AuthContext);
   const socket = useSocket();
   const navigate = useNavigate();
 
@@ -100,10 +88,16 @@ export default function HomePage() {
     navigate("/login");
   };
 
-  if (!user) return <CircularProgress />;
+  if (!user) {
+    return (
+      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
+        <CircularProgress />
+      </Box>
+    );
+  }
 
   return (
-    <ThemeProvider theme={lightTheme}>
+    <>
       <CssBaseline />
       <HeaderBar
         username={user.username}
@@ -127,7 +121,7 @@ export default function HomePage() {
       />
       <Container maxWidth="xl" sx={{ mt: 4, mb: 4 }}>
         <Grid container spacing={3}>
-          <Grid size={{ xs: 12, md: 8, lg:9 }}>
+          <Grid size={{ xs: 12, md: 8, lg: 9 }}>
             {loading ? (
               <CircularProgress />
             ) : error ? (
@@ -136,7 +130,7 @@ export default function HomePage() {
               <GamesGrid games={games} />
             )}
           </Grid>
-          <Grid size={{ xs: 12, md: 4, lg:3 }}>
+          <Grid size={{ xs: 12, md: 4, lg: 3 }}>
             <LobbySidebar
               games={games}
               lobbies={lobbies}
@@ -145,6 +139,6 @@ export default function HomePage() {
           </Grid>
         </Grid>
       </Container>
-    </ThemeProvider>
+    </>
   );
 }

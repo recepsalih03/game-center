@@ -24,7 +24,6 @@ router.get("/:id", (req: AuthenticatedRequest, res: Response) => {
   res.json(lobby);
 });
 
-
 router.post("/", auth, (req: AuthenticatedRequest, res: Response) => {
   const { name, gameId, maxPlayers } = req.body;
   if (!name || !gameId || !maxPlayers) {
@@ -32,9 +31,7 @@ router.post("/", auth, (req: AuthenticatedRequest, res: Response) => {
     return;
   }
   const newLobby = createLobby(name, Number(gameId), Number(maxPlayers));
-
   io.emit('lobby_created', newLobby);
-
   res.status(201).json(newLobby);
 });
 
@@ -47,9 +44,7 @@ router.put("/:id", auth, (req: AuthenticatedRequest, res: Response) => {
   const { name, maxPlayers } = req.body;
   if (name !== undefined) lobby.name = name;
   if (maxPlayers !== undefined) lobby.maxPlayers = Number(maxPlayers);
-
   io.emit('lobby_updated', lobby);
-
   res.json(lobby);
 });
 
@@ -61,9 +56,7 @@ router.delete("/:id", auth, (req: AuthenticatedRequest, res: Response) => {
   }
   const lobbyId = lobbies[idx].id;
   lobbies.splice(idx, 1);
-  
   io.emit('lobby_deleted', { id: lobbyId });
-
   res.status(204).send();
 });
 
@@ -79,9 +72,7 @@ router.put("/:id/join", auth, (req: AuthenticatedRequest, res: Response) => {
   }
   lobby.players += 1;
   if (lobby.players >= lobby.maxPlayers) lobby.status = "full";
-
   io.emit('lobby_updated', lobby);
-
   res.json(lobby);
 });
 
@@ -95,9 +86,7 @@ router.put("/:id/leave", auth, (req: AuthenticatedRequest, res: Response) => {
     lobby.players -= 1;
     if (lobby.status === "full") lobby.status = "open";
   }
-
   io.emit('lobby_updated', lobby);
-  
   res.json(lobby);
 });
 

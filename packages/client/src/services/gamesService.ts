@@ -7,6 +7,8 @@ export interface Game {
   players: number;
   category: string;
   rating: number;
+  howToPlaySteps: string[];
+  gameComponent: string;
 }
 
 export const getGames = async (): Promise<Game[]> => {
