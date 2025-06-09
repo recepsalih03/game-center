@@ -1,14 +1,6 @@
 import React, { useState, useEffect, useContext, useCallback } from "react";
 import {
-  Box,
-  Container,
-  CssBaseline,
-  Tabs,
-  Tab,
-  Grid,
-  Button,
-  CircularProgress,
-  Typography,
+  Box, Container, CssBaseline, Tabs, Tab, Grid, Button, CircularProgress, Typography,
 } from "@mui/material";
 import { useNavigate, useParams } from "react-router-dom";
 import { AuthContext } from "../contexts/AuthContext";
@@ -20,16 +12,13 @@ import AvatarMenu from "../components/AvatarMenu";
 import ProfileDialog from "../components/ProfileDialog";
 import GameOverview from "../components/GameOverview";
 import HowToPlay from "../components/HowtoPlay";
-import GameSettings from "../components/GameSettings";
-import GameHistory from "../components/GameHistory";
 import LobbyForm from "../components/GameLobbySection/LobbyForm";
 import LobbyList from "../components/GameLobbySection/LobbyList";
 import { Game, getGameById } from "../services/gamesService";
 import { Lobby, getLobbiesByGameId, createLobby } from "../services/lobbiesService";
+import InvitePlayerDialog from "../components/InvitePlayerDialog";
 
-const TabPanel: React.FC<{ index: number; value: number; children: React.ReactNode }> = ({
-  index, value, children,
-}) => (index === value ? <Box pt={2}>{children}</Box> : null);
+const TabPanel: React.FC<{ index: number; value: number; children: React.ReactNode }> = ({ index, value, children, }) => (index === value ? <Box pt={3}>{children}</Box> : null);
 
 export default function GameDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -45,17 +34,15 @@ export default function GameDetailPage() {
   const [profile, setProfile] = useState(false);
   const [tab, setTab] = useState(0);
 
-  const { handleJoin, handleInvite } = useLobbyActions(game ? [game] : [], lobbies);
+  const { handleJoin, handleLeave, handleInvite, handleStartGame, isInviteModalOpen, invitingLobby, closeInviteModal } = useLobbyActions(game ? [game] : []);
 
   const fetchGameData = useCallback(async () => {
     if (!id) return;
     setLoading(true);
     try {
-      const gameData = await getGameById(id);
-      const lobbiesData = await getLobbiesByGameId(id);
+      const [gameData, lobbiesData] = await Promise.all([getGameById(id), getLobbiesByGameId(id)]);
       setGame(gameData);
       setLobbies(lobbiesData);
-      setError(null);
     } catch (err) {
       setError("Oyun verileri yüklenemedi.");
     } finally {
@@ -63,111 +50,80 @@ export default function GameDetailPage() {
     }
   }, [id]);
 
-  useEffect(() => {
-    fetchGameData();
-  }, [fetchGameData]);
+  useEffect(() => { fetchGameData(); }, [fetchGameData]);
 
   useEffect(() => {
     if (!socket || !id) return;
-    const handleLobbyCreated = (newLobby: Lobby) => {
-      if (newLobby.gameId === Number(id)) setLobbies((prev) => [...prev, newLobby]);
-    };
-    const handleLobbyUpdated = (updatedLobby: Lobby) => {
-      setLobbies((prev) => prev.map((l) => (l.id === updatedLobby.id ? updatedLobby : l)));
-    };
-    const handleLobbyDeleted = (data: { id: string }) => {
-      setLobbies((prev) => prev.filter((l) => l.id !== data.id));
-    };
+    const handleLobbyCreated = (newLobby: Lobby) => { if (newLobby.gameId === Number(id)) setLobbies((prev) => [...prev, newLobby]); };
+    const handleLobbyUpdated = (updatedLobby: Lobby) => setLobbies((prev) => prev.map((l) => (l.id === updatedLobby.id ? updatedLobby : l)));
+    const handleLobbyDeleted = (data: { id: string }) => setLobbies((prev) => prev.filter((l) => l.id !== data.id));
+    const handleNavigate = ({ gameId, lobbyId }: { gameId: number, lobbyId: string }) => { if (gameId === Number(id)) navigate(`/play/${gameId}`, { state: { lobbyId } }); };
+
     socket.on('lobby_created', handleLobbyCreated);
     socket.on('lobby_updated', handleLobbyUpdated);
     socket.on('lobby_deleted', handleLobbyDeleted);
+    socket.on('navigate_to_game', handleNavigate);
     return () => {
-      socket.off('lobby_created', handleLobbyCreated);
-      socket.off('lobby_updated', handleLobbyUpdated);
-      socket.off('lobby_deleted', handleLobbyDeleted);
+      socket.off('lobby_created');
+      socket.off('lobby_updated');
+      socket.off('lobby_deleted');
+      socket.off('navigate_to_game');
     };
-  }, [socket, id]);
+  }, [socket, id, navigate]);
 
   const handleCreateLobby = async (name: string, maxPlayers: number) => {
     if (!game) return;
-    try {
-      await createLobby(name, game.id, maxPlayers);
-    } catch (err) {
-      alert("Lobi oluşturulurken bir hata oluştu.");
-    }
+    try { await createLobby(name, game.id, maxPlayers); } catch (err) { alert("Lobi oluşturulurken bir hata oluştu."); }
   };
 
-  const handleLogout = () => {
-    if (logout) logout();
-    navigate("/login");
-  };
+  const handleLogout = () => { if (logout) logout(); navigate("/login"); };
 
-  if (!user) {
-    return <CircularProgress />;
-  }
-
-  if (loading) return <CircularProgress />;
+  if (!user || loading) return <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}><CircularProgress /></Box>;
   if (error) return <Container><Typography color="error">{error}</Typography></Container>;
   if (!game) return <Container><Typography>Oyun bulunamadı.</Typography></Container>;
-
+  
   const initials = (name: string) => name.split(" ").map((x) => x[0]).join("").toUpperCase();
-  const tabLabels = ["Genel Bakış", "Lobiler", "Geçmiş", "Nasıl Oynanır", "Ayarlar"];
+  const tabLabels = ["Genel Bakış", "Lobiler", "Nasıl Oynanır"];
+
+  const handlePlaySolo = () => {
+    const soloLobbyId = `solo_${user.username}_${Date.now()}`;
+    navigate(`/play/${game.id}`, { state: { lobbyId: soloLobbyId } });
+  };
 
   return (
     <>
       <CssBaseline />
-      <HeaderBar
-        username={user.username}
-        notifCount={0}
-        onAvatarClick={(e) => setAnchor(e.currentTarget)}
-        getInitials={initials}
-      />
-      <AvatarMenu
-        anchorEl={anchor}
-        onClose={() => setAnchor(null)}
-        onProfile={() => { setProfile(true); setAnchor(null); }}
-        onLogout={handleLogout}
-      />
-      <ProfileDialog
-        open={profile}
-        onClose={() => setProfile(false)}
-        username={user.username}
-        email={`${user.username}@example.com`}
-        memberSince="Jan 2025"
-        getInitials={initials}
-      />
+      <InvitePlayerDialog open={isInviteModalOpen} onClose={closeInviteModal} lobby={invitingLobby} game={game} />
+      <HeaderBar username={user.username} notifCount={0} onAvatarClick={(e) => setAnchor(e.currentTarget)} getInitials={initials} />
+      <AvatarMenu anchorEl={anchor} onClose={() => setAnchor(null)} onProfile={() => { setProfile(true); setAnchor(null); }} onLogout={handleLogout} />
+      <ProfileDialog open={profile} onClose={() => setProfile(false)} username={user.username} email={`${user.username}@example.com`} memberSince="Jan 2025" getInitials={initials} />
       <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
-        <Tabs value={tab} onChange={(_, v) => setTab(v)} textColor="primary" indicatorColor="primary" sx={{ mb: 2 }}>
-          {tabLabels.map((label, i) => (
-            <Tab key={i} label={label} />
-          ))}
+        <Tabs value={tab} onChange={(_, v) => setTab(v)} textColor="primary" indicatorColor="primary" sx={{ borderBottom: 1, borderColor: 'divider' }}>
+          {tabLabels.map((label, i) => (<Tab key={i} label={label} />))}
         </Tabs>
         <TabPanel index={0} value={tab}>
           <GameOverview game={game} />
-          <Box mt={3}>
-            <Button variant="contained" size="large" onClick={() => navigate(`/play/${game.id}`, { state: { lobbyId: `lobby_for_game_${game.id}` } })}>
-              Oyunu Başlat
+          <Box sx={{ mt: 3, display: 'flex', gap: 2 }}>
+            <Button variant="contained" size="large" onClick={handlePlaySolo}>
+              Tek Başına Oyna
+            </Button>
+            <Button variant="outlined" size="large" onClick={() => setTab(1)}>
+              Lobilere Göz At
             </Button>
           </Box>
         </TabPanel>
         <TabPanel index={1} value={tab}>
           <Grid container spacing={3}>
-            <Grid size={{ xs: 12, md: 4 }}>
+            <Grid size={{ xs: 12, md: 5 }}>
               <LobbyForm onCreate={handleCreateLobby} />
             </Grid>
             <Grid size={{ xs: 12, md: 8 }}>
-              <LobbyList lobbies={lobbies} onJoin={handleJoin} onInvite={handleInvite} />
+              <LobbyList lobbies={lobbies} onJoin={handleJoin} onLeave={handleLeave} onInvite={handleInvite} onStartGame={handleStartGame} />
             </Grid>
           </Grid>
         </TabPanel>
         <TabPanel index={2} value={tab}>
-          <GameHistory history={[]} />
-        </TabPanel>
-        <TabPanel index={3} value={tab}>
           <HowToPlay steps={game.howToPlaySteps} />
-        </TabPanel>
-        <TabPanel index={4} value={tab}>
-          <GameSettings onSave={(s) => console.log("Ayarlar kaydedildi", s)} />
         </TabPanel>
       </Container>
     </>

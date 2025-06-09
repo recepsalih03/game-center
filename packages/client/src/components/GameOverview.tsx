@@ -1,6 +1,5 @@
 import React from "react";
 import { Grid, Card, CardMedia, Box, Typography } from "@mui/material";
-import { People, Star } from "@mui/icons-material";
 import type { Game } from "../services/gamesService";
 
 interface Props { game: Game }
@@ -14,22 +13,15 @@ export default function GameOverview({ game }: Props) {
         </Card>
       </Grid>
       <Grid size={{ xs: 12, md: 7 }}>
-        <Typography variant="h6" gutterBottom>
-          Oyun Hakkında
+        <Typography variant="h4" component="h1" gutterBottom>
+          {game.title}
+        </Typography>
+        <Typography variant="h6" color="text.secondary" sx={{ mb: 2 }}>
+          {game.category}
         </Typography>
         <Typography paragraph mb={3}>
           {game.description}
         </Typography>
-        <Box sx={{ display: "flex", gap: 4 }}>
-          <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-            <People color="action" />
-            <Typography>{game.players} online</Typography>
-          </Box>
-          <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
-            <Star sx={{ color: "#ffb400" }} />
-            <Typography>{game.rating}</Typography>
-          </Box>
-        </Box>
       </Grid>
     </Grid>
   );

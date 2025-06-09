@@ -12,7 +12,7 @@ import gamesRoutes from "./routes/games";
 
 import { logger } from "./middleware/logger";
 import { errorHandler } from "./middleware/errorHandler";
-import { games } from "./data/inMemoryStore";
+import { games, lobbies } from "./data/inMemoryStore";
 
 dotenv.config();
 const app = express();
@@ -78,16 +78,28 @@ io.on("connection", (socket: Socket) => {
 
   socket.on('start_game', (lobbyId: string) => {
     if (activeTombalaGames.has(lobbyId)) return;
+    
+    console.log(`[SERVER] Received start_game for lobby: ${lobbyId}. Starting number draw...`);
+    
+    const lobby = lobbies.find(l => l.id === lobbyId);
+    
     const availableNumbers = Array.from({ length: 90 }, (_, i) => i + 1);
     const newGameState: TombalaGameState = {
       drawnNumbers: new Set(),
       intervalId: null,
-      players: [],
+      players: lobby ? lobby.playerUsernames : [],
       cinko1: null,
       cinko2: null,
       tombala: null,
     };
     activeTombalaGames.set(lobbyId, newGameState);
+    
+    if(lobby) {
+        lobby.status = 'in-progress';
+        io.emit('lobby_updated', lobby);
+        io.to(lobbyId).emit('navigate_to_game', { gameId: lobby.gameId, lobbyId: lobby.id });
+    }
+    
     io.to(lobbyId).emit('game_state_update', newGameState);
     
     newGameState.intervalId = setInterval(() => {
@@ -111,10 +123,7 @@ io.on("connection", (socket: Socket) => {
     if (claimType === 'cinko2' && (gameState.cinko2 || !gameState.cinko1)) isClaimAllowed = false;
     if (claimType === 'tombala' && (gameState.tombala || !gameState.cinko2)) isClaimAllowed = false;
     
-    if (!isClaimAllowed) {
-      console.log(`"${claimType}" iddiasına şu an izin verilmiyor.`);
-      return;
-    }
+    if (!isClaimAllowed) return;
 
     let isWinValid = false;
     const drawnNumbers = gameState.drawnNumbers;

@@ -19,8 +19,8 @@ const App: React.FC = () => {
     <CustomThemeProvider>
       <CssBaseline />
       <AuthProvider>
-        <SocketProvider>
-          <BrowserRouter>
+        <BrowserRouter>
+          <SocketProvider>
             <ToastContainer position="top-right" autoClose={5000} hideProgressBar={false} />
             <Routes>
               <Route path="/login" element={<LoginPage />} />
@@ -48,8 +48,8 @@ const App: React.FC = () => {
 
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
-          </BrowserRouter>
-        </SocketProvider>
+          </SocketProvider>
+        </BrowserRouter>
       </AuthProvider>
     </CustomThemeProvider>
   );

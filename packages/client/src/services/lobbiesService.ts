@@ -29,3 +29,8 @@ export const joinLobby = async (lobbyId: string): Promise<Lobby> => {
   const response = await api.put(`/lobbies/${lobbyId}/join`);
   return response.data;
 }
+
+export const leaveLobby = async (lobbyId: string): Promise<Lobby> => {
+  const response = await api.put(`/lobbies/${lobbyId}/leave`);
+  return response.data;
+}

@@ -51,7 +51,7 @@ const LoginPage: React.FC = () => {
       >
         <SportsEsports sx={{ fontSize: 32, color: "white", mr: 1 }} />
         <Typography variant="h5" fontWeight="bold" color="white">
-          Oyun Merkezi
+          Game Center
         </Typography>
       </Box>
 

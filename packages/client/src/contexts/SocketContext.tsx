@@ -35,11 +35,12 @@ const flashTitle = (newTitle: string, originalTitle: string, duration: number) =
   window.addEventListener('focus', stopFlashing, { once: true });
 };
 
+
 export const SocketProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const { user } = useContext(AuthContext);
   const isPageFocused = usePageFocus();
   const originalTitleRef = useRef(document.title);
-
+  
   const socket = io(SOCKET_URL, {
     reconnection: true,
     transports: ['websocket'],
@@ -56,19 +57,13 @@ export const SocketProvider: React.FC<{ children: ReactNode }> = ({ children }) 
 
       socket.on('receive_invite', (data) => {
         toast(<InviteNotification {...data} />);
-        
         if (!isPageFocused) {
-          try {
             const audio = new Audio('/notification.mp3');
-            const playPromise = audio.play();
-            if (playPromise !== undefined) {
-              playPromise.catch(error => {});
-            }
-          } catch(e) {}
-          flashTitle(`💌 Yeni Davet!`, originalTitleRef.current, 6);
+            audio.play().catch(e => {});
+            flashTitle(`💌 Yeni Davet!`, originalTitleRef.current, 6);
         }
       });
-
+      
       socket.on('disconnect', () => {});
     }
 

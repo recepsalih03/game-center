@@ -1,44 +1,49 @@
-import { useContext } from 'react';
+import { useContext, useState } from 'react';
 import { useSocket } from '../contexts/SocketContext';
 import { AuthContext } from '../contexts/AuthContext';
-import { joinLobby, Lobby } from '../services/lobbiesService';
+import { joinLobby, leaveLobby, Lobby } from '../services/lobbiesService';
 import { toast } from 'react-toastify';
 import { Game } from '../services/gamesService';
-import { useNavigate } from 'react-router-dom';
 
-export const useLobbyActions = (games: Game[], lobbies: Lobby[]) => {
+export const useLobbyActions = (games: Game[]) => {
   const socket = useSocket();
   const { user } = useContext(AuthContext);
-  const navigate = useNavigate();
+  
+  const [isInviteModalOpen, setInviteModalOpen] = useState(false);
+  const [invitingLobby, setInvitingLobby] = useState<Lobby | null>(null);
 
-  const handleJoin = async (lobbyId: string, gameId: number) => {
+  const handleJoin = async (lobbyId: string) => {
     try {
       await joinLobby(lobbyId);
-      toast.success("Lobiye katıldınız!");
-      navigate(`/game/${gameId}`);
+      socket?.emit('join_game_room', lobbyId);
     } catch (error: any) {
       toast.error(error.response?.data?.error || "Lobiye katılamadınız.");
     }
   };
 
-  const handleInvite = (lobbyId: string, lobbyName: string) => {
-    if (!socket || !user) return;
-    
-    const toUser = prompt("Kimi davet etmek istersiniz? (Kullanıcı adını girin)");
-    const lobby = lobbies.find(l => l.id === lobbyId);
-    const game = games.find(g => g.id === lobby?.gameId);
-
-    if (toUser && lobby && game) {
-      socket.emit('send_invite', {
-        fromUser: user.username,
-        toUser: toUser,
-        lobbyId: lobby.id,
-        lobbyName: lobby.name,
-        gameTitle: game.title,
-      });
-      toast.info(`${toUser} kullanıcısına davet gönderildi!`);
+  const handleLeave = async (lobbyId: string) => {
+    try {
+      await leaveLobby(lobbyId);
+    } catch (error: any) {
+      toast.error(error.response?.data?.error || "Lobiden ayrılamadınız.");
     }
   };
 
-  return { handleJoin, handleInvite };
+  const handleInvite = (lobby: Lobby) => {
+    setInvitingLobby(lobby);
+    setInviteModalOpen(true);
+  };
+  
+  const closeInviteModal = () => {
+    setInviteModalOpen(false);
+    setInvitingLobby(null);
+  };
+
+  const handleStartGame = (lobbyId: string) => {
+    if (socket) {
+      socket.emit('start_game', lobbyId);
+    }
+  };
+
+  return { handleJoin, handleLeave, handleInvite, handleStartGame, isInviteModalOpen, invitingLobby, closeInviteModal };
 };
