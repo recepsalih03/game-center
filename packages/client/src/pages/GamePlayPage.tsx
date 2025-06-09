@@ -70,7 +70,7 @@ export default function GamePlayPage() {
       <GameOverDialog open={isGameOver} winner={winner} />
       <HeaderBar username={user.username} notifCount={0} onAvatarClick={(e) => setAnchor(e.currentTarget)} getInitials={initials} />
       <AvatarMenu anchorEl={anchor} onClose={() => setAnchor(null)} onProfile={() => setProfile(true)} onLogout={handleLogout} />
-      <ProfileDialog open={profile} onClose={() => setProfile(false)} username={user.username} email={`${user.username}@example.com`} memberSince="Jan 2025" getInitials={initials} />
+      <ProfileDialog open={profile} onClose={() => setProfile(false)} username={user.username} memberSince="Jan 2025" getInitials={initials} />
 
       <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
         <Typography variant="h4" gutterBottom>

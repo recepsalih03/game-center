@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useContext } from "react";
-import { Box, Container, CssBaseline, CircularProgress, Typography, Grid } from "@mui/material";
+import {
+  Box, Container, CssBaseline, CircularProgress, Typography, Grid,
+} from "@mui/material";
 import { useNavigate } from "react-router-dom";
 import { AuthContext } from "../contexts/AuthContext";
 import { useSocket } from "../contexts/SocketContext";
@@ -48,13 +50,13 @@ export default function HomePage() {
 
   useEffect(() => {
     if (!socket) return;
-    const handleLobbyEvents = (updatedLobby: Lobby) => setLobbies((prev) => prev.map((l) => (l.id === updatedLobby.id ? updatedLobby : l)));
     const handleLobbyCreated = (newLobby: Lobby) => setLobbies((prev) => [...prev, newLobby]);
+    const handleLobbyUpdated = (updatedLobby: Lobby) => setLobbies((prev) => prev.map((l) => (l.id === updatedLobby.id ? updatedLobby : l)));
     const handleLobbyDeleted = (data: { id: string }) => setLobbies((prev) => prev.filter((l) => l.id !== data.id));
     const handleNavigate = ({ gameId, lobbyId }: { gameId: number, lobbyId: string }) => navigate(`/play/${gameId}`, { state: { lobbyId } });
     
     socket.on('lobby_created', handleLobbyCreated);
-    socket.on('lobby_updated', handleLobbyEvents);
+    socket.on('lobby_updated', handleLobbyUpdated);
     socket.on('lobby_deleted', handleLobbyDeleted);
     socket.on('navigate_to_game', handleNavigate);
 
@@ -67,12 +69,21 @@ export default function HomePage() {
   }, [socket, navigate]);
 
   const handleCreateLobby = async (name: string, gameId: number, maxPlayers: number) => {
-    try { await createLobby(name, gameId, maxPlayers); } catch (err: any) { alert(err.response?.data?.error || "Lobi oluşturulurken bir hata oluştu."); }
+    try { 
+      const newLobby = await createLobby(name, gameId, maxPlayers);
+      if (socket && newLobby) {
+        socket.emit('join_game_room', newLobby.id);
+      }
+    } catch (err: any) { 
+      alert(err.response?.data?.error || "Lobi oluşturulurken bir hata oluştu."); 
+    }
   };
 
   const handleLogout = () => { if (logout) logout(); navigate("/login"); };
 
-  if (!user) return <CircularProgress />;
+  if (!user) {
+    return <CircularProgress />;
+  }
 
   return (
     <>
@@ -80,7 +91,7 @@ export default function HomePage() {
       <InvitePlayerDialog open={isInviteModalOpen} onClose={closeInviteModal} lobby={invitingLobby} game={games.find(g => g.id === invitingLobby?.gameId) || null} />
       <HeaderBar username={user.username} notifCount={0} onAvatarClick={(e) => setMenuAnchor(e.currentTarget)} getInitials={getUserInitials} />
       <AvatarMenu anchorEl={menuAnchor} onClose={() => setMenuAnchor(null)} onProfile={() => { setProfileOpen(true); setMenuAnchor(null); }} onLogout={handleLogout} />
-      <ProfileDialog open={profileOpen} onClose={() => setProfileOpen(false)} username={user.username} email={`${user.username}@example.com`} memberSince="Jan 2025" getInitials={getUserInitials} />
+      <ProfileDialog open={profileOpen} onClose={() => setProfileOpen(false)} username={user.username} memberSince="Jan 2025" getInitials={getUserInitials} />
       <Container maxWidth="xl" sx={{ mt: 4, mb: 4 }}>
         <Grid container spacing={3}>
           <Grid size={{ xs: 12, md: 8, lg: 9 }}>
@@ -93,7 +104,7 @@ export default function HomePage() {
               onCreateLobby={handleCreateLobby}
               onJoin={handleJoin}
               onLeave={handleLeave}
-              onInvite={handleInvite}
+              onInvite={(lobby) => handleInvite(lobby)}
               onStartGame={handleStartGame}
             />
           </Grid>

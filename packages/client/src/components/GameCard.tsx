@@ -1,26 +1,22 @@
 import React from "react";
-import { Card, CardMedia, CardContent, Typography, Box, Button } from "@mui/material";
+import { Card, CardMedia, CardContent, Typography, Button } from "@mui/material";
 import { useNavigate } from "react-router-dom";
 
 export interface GameCardProps {
   id: number;
   title: string;
   imageUrl: string;
-  category: string;
 }
 
-export default function GameCard({ id, title, imageUrl, category }: GameCardProps) {
+export default function GameCard({ id, title, imageUrl }: GameCardProps) {
   const navigate = useNavigate();
 
   return (
     <Card>
       <CardMedia component="img" height="140" image={imageUrl} alt={title} />
       <CardContent>
-        <Typography gutterBottom variant="h6" component="div" noWrap>
+        <Typography gutterBottom variant="h6" component="div" align="center" noWrap>
           {title}
-        </Typography>
-        <Typography variant="body2" color="text.secondary">
-          {category}
         </Typography>
         <Button
           variant="contained"

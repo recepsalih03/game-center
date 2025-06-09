@@ -6,6 +6,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { AuthContext } from "../contexts/AuthContext";
 import { useSocket } from "../contexts/SocketContext";
 import { useLobbyActions } from "../hooks/useLobbyActions";
+import { toast } from "react-toastify";
 
 import HeaderBar from "../components/HeaderBar";
 import AvatarMenu from "../components/AvatarMenu";
@@ -73,7 +74,15 @@ export default function GameDetailPage() {
 
   const handleCreateLobby = async (name: string, maxPlayers: number) => {
     if (!game) return;
-    try { await createLobby(name, game.id, maxPlayers); } catch (err) { alert("Lobi oluşturulurken bir hata oluştu."); }
+    try {
+      const newLobby = await createLobby(name, game.id, maxPlayers);
+      if (socket && newLobby) {
+        socket.emit('join_game_room', newLobby.id);
+        toast.success(`'${name}' lobisi oluşturuldu!`);
+      }
+    } catch (err: any) {
+      toast.error(err.response?.data?.error || "Lobi oluşturulurken bir hata oluştu.");
+    }
   };
 
   const handleLogout = () => { if (logout) logout(); navigate("/login"); };
@@ -96,20 +105,16 @@ export default function GameDetailPage() {
       <InvitePlayerDialog open={isInviteModalOpen} onClose={closeInviteModal} lobby={invitingLobby} game={game} />
       <HeaderBar username={user.username} notifCount={0} onAvatarClick={(e) => setAnchor(e.currentTarget)} getInitials={initials} />
       <AvatarMenu anchorEl={anchor} onClose={() => setAnchor(null)} onProfile={() => { setProfile(true); setAnchor(null); }} onLogout={handleLogout} />
-      <ProfileDialog open={profile} onClose={() => setProfile(false)} username={user.username} email={`${user.username}@example.com`} memberSince="Jan 2025" getInitials={initials} />
+      <ProfileDialog open={profile} onClose={() => setProfile(false)} username={user.username} memberSince="Jan 2025" getInitials={initials} />
       <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
         <Tabs value={tab} onChange={(_, v) => setTab(v)} textColor="primary" indicatorColor="primary" sx={{ borderBottom: 1, borderColor: 'divider' }}>
           {tabLabels.map((label, i) => (<Tab key={i} label={label} />))}
         </Tabs>
         <TabPanel index={0} value={tab}>
           <GameOverview game={game} />
-          <Box sx={{ mt: 3, display: 'flex', gap: 2 }}>
-            <Button variant="contained" size="large" onClick={handlePlaySolo}>
-              Tek Başına Oyna
-            </Button>
-            <Button variant="outlined" size="large" onClick={() => setTab(1)}>
-              Lobilere Göz At
-            </Button>
+          <Box sx={{mt: 3, display: 'flex', gap: 2}}>
+            <Button variant="contained" size="large" onClick={handlePlaySolo}>Tek Başına Oyna</Button>
+            <Button variant="outlined" size="large" onClick={() => setTab(1)}>Lobilere Göz At</Button>
           </Box>
         </TabPanel>
         <TabPanel index={1} value={tab}>
@@ -117,7 +122,7 @@ export default function GameDetailPage() {
             <Grid size={{ xs: 12, md: 5 }}>
               <LobbyForm onCreate={handleCreateLobby} />
             </Grid>
-            <Grid size={{ xs: 12, md: 8 }}>
+            <Grid size={{ xs: 12, md: 7 }}>
               <LobbyList lobbies={lobbies} onJoin={handleJoin} onLeave={handleLeave} onInvite={handleInvite} onStartGame={handleStartGame} />
             </Grid>
           </Grid>

@@ -1,78 +1,97 @@
 import React, { createContext, useContext, useEffect, ReactNode, useRef } from 'react';
 import { io, Socket } from 'socket.io-client';
-import { AuthContext } from './AuthContext';
+import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
+import { AuthContext } from './AuthContext';
 import InviteNotification from '../components/InviteNotification';
 import { usePageFocus } from '../hooks/usePageFocus';
 
 const SOCKET_URL = 'http://localhost:4000';
 
-const SocketContext = createContext<Socket | null>(null);
+const socket = io(SOCKET_URL, {
+  reconnection: true,
+  transports: ['websocket'],
+  autoConnect: false,
+});
+
+const SocketContext = createContext<Socket | null>(socket);
 
 export const useSocket = () => {
   return useContext(SocketContext);
 };
 
-const flashTitle = (newTitle: string, originalTitle: string, duration: number) => {
+const flashTitle = (newTitle: string, originalTitle: string) => {
+  if (document.hasFocus()) return;
+  
   let isFlashing = true;
-  let counter = 0;
-  const interval = setInterval(() => {
-    if (!isFlashing) {
-      clearInterval(interval);
-      document.title = originalTitle;
-      return;
-    }
-    document.title = document.title === originalTitle ? newTitle : originalTitle;
-    counter++;
-    if (counter >= duration * 2) {
-      isFlashing = false;
-    }
-  }, 500);
+  document.title = newTitle;
 
   const stopFlashing = () => {
     isFlashing = false;
+    document.title = originalTitle;
+    window.removeEventListener('focus', stopFlashing);
   };
+
+  const flashInterval = setInterval(() => {
+    if (!isFlashing) {
+      clearInterval(flashInterval);
+      return;
+    }
+    document.title = document.title === originalTitle ? newTitle : originalTitle;
+  }, 1000);
+
   window.addEventListener('focus', stopFlashing, { once: true });
 };
-
 
 export const SocketProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const { user } = useContext(AuthContext);
   const isPageFocused = usePageFocus();
   const originalTitleRef = useRef(document.title);
-  
-  const socket = io(SOCKET_URL, {
-    reconnection: true,
-    transports: ['websocket'],
-    autoConnect: false,
-  });
+  const navigate = useNavigate();
 
   useEffect(() => {
-    if (user && !socket.connected) {
-      socket.connect();
-
-      socket.on('connect', () => {
-        socket.emit('register_user', user.username);
-      });
-
-      socket.on('receive_invite', (data) => {
-        toast(<InviteNotification {...data} />);
-        if (!isPageFocused) {
-            const audio = new Audio('/notification.mp3');
-            audio.play().catch(e => {});
-            flashTitle(`💌 Yeni Davet!`, originalTitleRef.current, 6);
-        }
-      });
-      
-      socket.on('disconnect', () => {});
-    }
-
-    return () => {
+    if (user) {
+      if (!socket.connected) {
+        socket.connect();
+      }
+    } else {
       if (socket.connected) {
         socket.disconnect();
       }
+    }
+  }, [user]);
+
+  useEffect(() => {
+    const onConnect = () => {
+      if(user) {
+        socket.emit('register_user', user.username);
+      }
     };
-  }, [user, socket, isPageFocused]);
+
+    const onReceiveInvite = (data: any) => {
+      toast(<InviteNotification {...data} />);
+      if (!isPageFocused) {
+        try {
+          new Audio('/notification.mp3').play().catch(() => {});
+        } catch (e) {}
+        flashTitle('💌 Yeni Davet!', originalTitleRef.current);
+      }
+    };
+
+    const onNavigate = ({ gameId, lobbyId }: { gameId: number, lobbyId: string }) => {
+      navigate(`/play/${gameId}`, { state: { lobbyId } });
+    };
+    
+    socket.on('connect', onConnect);
+    socket.on('receive_invite', onReceiveInvite);
+    socket.on('navigate_to_game', onNavigate);
+
+    return () => {
+      socket.off('connect', onConnect);
+      socket.off('receive_invite', onReceiveInvite);
+      socket.off('navigate_to_game', onNavigate);
+    };
+  }, [user, isPageFocused, navigate]);
 
   return (
     <SocketContext.Provider value={socket}>

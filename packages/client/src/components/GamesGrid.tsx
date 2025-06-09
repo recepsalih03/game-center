@@ -1,10 +1,11 @@
-"use client"
-import React from "react"
-import { Grid, Typography } from "@mui/material"
-import GameCard from "./GameCard"
-import { Game } from "../services/gamesService"
+import React from "react";
+import { Grid, Typography } from "@mui/material";
+import GameCard from "./GameCard";
+import { Game } from "../services/gamesService";
 
-interface Props { games: Game[] }
+interface Props { 
+  games: Game[];
+}
 
 export default function GamesGrid({ games }: Props) {
   return (
@@ -20,5 +21,5 @@ export default function GamesGrid({ games }: Props) {
         ))}
       </Grid>
     </>
-  )
+  );
 }

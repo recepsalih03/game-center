@@ -16,9 +16,6 @@ export default function GameOverview({ game }: Props) {
         <Typography variant="h4" component="h1" gutterBottom>
           {game.title}
         </Typography>
-        <Typography variant="h6" color="text.secondary" sx={{ mb: 2 }}>
-          {game.category}
-        </Typography>
         <Typography paragraph mb={3}>
           {game.description}
         </Typography>

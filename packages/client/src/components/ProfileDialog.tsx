@@ -9,12 +9,11 @@ interface Props {
   open: boolean
   onClose: () => void
   username: string
-  email: string
   memberSince: string
   getInitials: (name: string) => string
 }
 
-export default function ProfileDialog({ open, onClose, username, email, memberSince, getInitials }: Props) {
+export default function ProfileDialog({ open, onClose, username,  memberSince, getInitials }: Props) {
   return (
     <Dialog open={open} onClose={onClose} maxWidth="xs" fullWidth>
       <DialogTitle>Kullanıcı Profili</DialogTitle>
@@ -24,10 +23,9 @@ export default function ProfileDialog({ open, onClose, username, email, memberSi
             {getInitials(username)}
           </Avatar>
           <Typography variant="h6">{username}</Typography>
-          <Typography variant="body2" color="text.secondary">{email}</Typography>
         </Box>
         <Divider sx={{ mb: 2 }} />
-        <Typography variant="subtitle2" gutterBottom>Üyelik Bilgileri</Typography>
+        <Typography variant="h6" gutterBottom>Üyelik Bilgileri</Typography>
         <Typography variant="body2">Üyelik Başlangıcı: {memberSince}</Typography>
       </DialogContent>
       <DialogActions>

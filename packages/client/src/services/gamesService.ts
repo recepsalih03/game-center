@@ -4,9 +4,6 @@ export interface Game {
   id: number;
   title: string;
   imageUrl: string;
-  players: number;
-  category: string;
-  rating: number;
   description: string;
   howToPlaySteps: string[];
   gameComponent: string;

@@ -15,9 +15,6 @@ export interface Game {
   id: number;
   title: string;
   imageUrl: string;
-  players: number;
-  category: string;
-  rating: number;
   description: string;
   howToPlaySteps: string[];
   gameComponent: string;
@@ -27,15 +24,13 @@ export const games: Game[] = [
   { 
     id: 1, 
     title: "Tombala", 
-    imageUrl: "https://via.placeholder.com/280x150.png/007BFF/FFFFFF?Text=Tombala", 
-    players: 0, 
-    category: "Board Game", 
-    rating: 4.5,
+    imageUrl: "/tombala.jpg",
     description: "Klasik tombala oyunu. Kartınızdaki tüm sayıları ilk siz tamamlayın ve kazanın!",
     howToPlaySteps: [
       "Her oyuncu bir veya daha fazla kart alır.",
       "Sayılar çekilir ve oyuncular kartlarındaki sayıları işaretler.",
-      "Bir sırayı tamamlayan 'Çinko', tüm kartı tamamlayan 'Tombala' yapar."
+      "Bir sırayı tamamlayan 'Çinko', tüm kartı tamamlayan 'Tombala' yapar.",
+      "Tombala yapan oyuncu oyunu kazanır.",
     ],
     gameComponent: "TombalaBoard"
   },
