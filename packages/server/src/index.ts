@@ -34,7 +34,6 @@ app.use("/api/games", gamesRoutes);
 app.use(errorHandler);
 
 io.on("connection", (socket: Socket) => {
-  console.log(`🔌 Yeni bir kullanıcı bağlandı: ${socket.id}`);
 
   socket.on('register_user', (username: string) => {
     userSocketMap.set(username, socket.id);

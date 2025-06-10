@@ -25,7 +25,6 @@ export async function login(
   localStorage.setItem("accessToken", data.accessToken);
   localStorage.setItem("refreshToken", data.refreshToken);
   
-  console.log(`Login Service (${username}): Token kaydedildi:`, data.accessToken);
 
   return data;
 }

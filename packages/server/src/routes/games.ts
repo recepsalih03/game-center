@@ -18,7 +18,6 @@ router.get("/:id", (req: Request, res: Response) => {
 
 router.post("/:id/result", (req: Request, res: Response) => {
   const { winner, duration } = req.body;
-  console.log(`Game ${req.params.id} ended. Winner: ${winner}, Duration: ${duration}`);
   res.json({ status: "saved" });
 });
 
