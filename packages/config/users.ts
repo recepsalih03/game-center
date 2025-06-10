@@ -11,15 +11,15 @@ export const users: User[] = [
     passwordHash: PASSWORD_HASH,
   },
   {
-    username: "emir_han",
+    username: "deneme_hesap",
     passwordHash: PASSWORD_HASH,
   },
   {
-    username: "yusuf_talha",
+    username: "hesap_deneme",
     passwordHash: PASSWORD_HASH,
   },
   {
-    username: "omer_batuhan",
+    username: "kullanici",
     passwordHash: PASSWORD_HASH,
   },
 ];

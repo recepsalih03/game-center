@@ -72,7 +72,7 @@ Proje, Lerna ile yönetilen bir monorepo yapısındadır. Ana paketler `packages
 
 Giriş yapmak için aşağıdaki kullanıcı bilgilerini kullanabilirsiniz. Tüm kullanıcıların şifresi aynıdır.
 
--   **Kullanıcı Adları:** `recep_salih`, `emir_han`, `yusuf_talha`, `omer_batuhan`
+-   **Kullanıcı Adları:** `recep_salih`, `deneme_hesap`, `hesap_deneme`, `kullanici`
 -   **Şifre (hepsi için):** `sifre1234`
 
 ---
