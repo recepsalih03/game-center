@@ -14,9 +14,9 @@ export const useLobbyActions = (games: Game[]) => {
   const [isInviteModalOpen, setInviteModalOpen] = useState(false);
   const [invitingLobby, setInvitingLobby] = useState<Lobby | null>(null);
 
-  const handleJoin = async (lobbyId: string, gameId: number) => {
+  const handleJoin = async (lobbyId: string, gameId: number, password?: string) => {
     try {
-      await joinLobby(lobbyId);
+      await joinLobby(lobbyId, password);
       socket?.emit('join_game_room', lobbyId);
       navigate(`/game/${gameId}`);
     } catch (error: any) {
@@ -27,7 +27,6 @@ export const useLobbyActions = (games: Game[]) => {
   const handleLeave = async (lobbyId: string) => {
     try {
       await leaveLobby(lobbyId);
-      socket?.emit('leave_game_room', lobbyId);
     } catch (error: any) {
       toast.error(error.response?.data?.error || "Lobiden ayrılamadınız.");
     }

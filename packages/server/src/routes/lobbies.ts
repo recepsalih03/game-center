@@ -16,13 +16,21 @@ router.get("/", (req: AuthenticatedRequest, res: Response) => {
 });
 
 router.post("/", auth, (req: AuthenticatedRequest, res: Response) => {
-  const { name, gameId, maxPlayers } = req.body;
+  const { name, gameId, maxPlayers, lobbyType } = req.body;
   const username = req.user?.username;
-  if (!name || !gameId || !maxPlayers || !username) {
+
+  if (!name || !gameId || !maxPlayers || !username || !lobbyType) {
     res.status(400).json({ error: "Eksik alanlar veya kullanıcı bilgisi bulunamadı." });
     return;
   }
-  const newLobby = createLobby(name, Number(gameId), Number(maxPlayers), username);
+  
+  const userAlreadyHasLobby = lobbies.some(lobby => lobby.playerUsernames[0] === username);
+  if (userAlreadyHasLobby) {
+    res.status(403).json({ error: "Zaten kurucusu olduğunuz bir lobi var. Yeni lobi açamazsınız." });
+    return;
+  }
+
+  const newLobby = createLobby(req.body, username);
   io.emit('lobby_created', newLobby);
   res.status(201).json(newLobby);
 });
@@ -34,6 +42,10 @@ router.put("/:id/join", auth, (req: AuthenticatedRequest, res: Response) => {
   if (!lobby || !username) {
     res.status(404).json({ error: "Lobi veya kullanıcı bulunamadı." });
     return;
+  }
+  if (lobby.password && req.body.password !== lobby.password) {
+      res.status(403).json({ error: "Hatalı lobi şifresi."});
+      return;
   }
   if (lobby.playerUsernames.includes(username)) {
     res.status(400).json({ error: "Kullanıcı zaten bu lobide." });

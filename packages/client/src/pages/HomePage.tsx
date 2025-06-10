@@ -8,6 +8,7 @@ import { useSocket } from "../contexts/SocketContext";
 import { Game, getGames } from "../services/gamesService";
 import { Lobby, getAllLobbies, createLobby } from "../services/lobbiesService";
 import { useLobbyActions } from '../hooks/useLobbyActions';
+import { toast } from "react-toastify";
 
 import HeaderBar from "../components/HeaderBar";
 import AvatarMenu from "../components/AvatarMenu";
@@ -31,6 +32,8 @@ export default function HomePage() {
   const [profileOpen, setProfileOpen] = useState(false);
   
   const { handleJoin, handleLeave, handleInvite, handleStartGame, isInviteModalOpen, invitingLobby, closeInviteModal } = useLobbyActions(games);
+  
+  const canCreateLobby = user ? !lobbies.some(lobby => lobby.playerUsernames[0] === user.username) : false;
 
   useEffect(() => {
     const fetchInitialData = async () => {
@@ -50,7 +53,7 @@ export default function HomePage() {
 
   useEffect(() => {
     if (!socket) return;
-    const handleLobbyCreated = (newLobby: Lobby) => setLobbies((prev) => [...prev, newLobby]);
+    const handleLobbyCreated = (newLobby: Lobby) => setLobbies((prev) => [newLobby, ...prev]);
     const handleLobbyUpdated = (updatedLobby: Lobby) => setLobbies((prev) => prev.map((l) => (l.id === updatedLobby.id ? updatedLobby : l)));
     const handleLobbyDeleted = (data: { id: string }) => setLobbies((prev) => prev.filter((l) => l.id !== data.id));
     const handleNavigate = ({ gameId, lobbyId }: { gameId: number, lobbyId: string }) => navigate(`/play/${gameId}`, { state: { lobbyId } });
@@ -68,22 +71,21 @@ export default function HomePage() {
     };
   }, [socket, navigate]);
 
-  const handleCreateLobby = async (name: string, gameId: number, maxPlayers: number) => {
+  const handleCreateLobby = async (data: Partial<Lobby>) => {
     try { 
-      const newLobby = await createLobby(name, gameId, maxPlayers);
+      const newLobby = await createLobby(data);
       if (socket && newLobby) {
         socket.emit('join_game_room', newLobby.id);
+        toast.success(`'${newLobby.name}' lobisi oluşturuldu!`);
       }
     } catch (err: any) { 
-      alert(err.response?.data?.error || "Lobi oluşturulurken bir hata oluştu."); 
+      toast.error(err.response?.data?.error || "Lobi oluşturulurken bir hata oluştu."); 
     }
   };
 
   const handleLogout = () => { if (logout) logout(); navigate("/login"); };
 
-  if (!user) {
-    return <CircularProgress />;
-  }
+  if (!user) return <CircularProgress />;
 
   return (
     <>
@@ -104,8 +106,9 @@ export default function HomePage() {
               onCreateLobby={handleCreateLobby}
               onJoin={handleJoin}
               onLeave={handleLeave}
-              onInvite={(lobby) => handleInvite(lobby)}
+              onInvite={handleInvite}
               onStartGame={handleStartGame}
+              canCreateLobby={canCreateLobby}
             />
           </Grid>
         </Grid>

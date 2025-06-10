@@ -2,7 +2,7 @@ import React, { useState, useEffect, useContext, useCallback } from "react";
 import {
   Box, Container, CssBaseline, Tabs, Tab, Grid, Button, CircularProgress, Typography,
 } from "@mui/material";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams, useLocation } from "react-router-dom";
 import { AuthContext } from "../contexts/AuthContext";
 import { useSocket } from "../contexts/SocketContext";
 import { useLobbyActions } from "../hooks/useLobbyActions";
@@ -24,6 +24,7 @@ const TabPanel: React.FC<{ index: number; value: number; children: React.ReactNo
 export default function GameDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const location = useLocation();
   const { user, logout } = useContext(AuthContext);
   const socket = useSocket();
   
@@ -36,6 +37,8 @@ export default function GameDetailPage() {
   const [tab, setTab] = useState(0);
 
   const { handleJoin, handleLeave, handleInvite, handleStartGame, isInviteModalOpen, invitingLobby, closeInviteModal } = useLobbyActions(game ? [game] : []);
+
+  const canCreateLobby = user ? !lobbies.some(lobby => lobby.playerUsernames[0] === user.username) : false;
 
   const fetchGameData = useCallback(async () => {
     if (!id) return;
@@ -54,8 +57,22 @@ export default function GameDetailPage() {
   useEffect(() => { fetchGameData(); }, [fetchGameData]);
 
   useEffect(() => {
+    const autoJoinLobbyId = location.state?.autoJoinLobbyId;
+    if (autoJoinLobbyId && game) {
+      const lobbyToJoin = lobbies.find(l => l.id === autoJoinLobbyId);
+      const userAlreadyInLobby = lobbyToJoin?.playerUsernames.includes(user?.username || '');
+      
+      if (lobbyToJoin && !userAlreadyInLobby) {
+        handleJoin(autoJoinLobbyId, game.id);
+      }
+      
+      navigate(location.pathname, { replace: true, state: {} });
+    }
+  }, [location, game, lobbies, user, handleJoin, navigate]);
+
+  useEffect(() => {
     if (!socket || !id) return;
-    const handleLobbyCreated = (newLobby: Lobby) => { if (newLobby.gameId === Number(id)) setLobbies((prev) => [...prev, newLobby]); };
+    const handleLobbyCreated = (newLobby: Lobby) => { if (newLobby.gameId === Number(id)) setLobbies((prev) => [newLobby, ...prev]); };
     const handleLobbyUpdated = (updatedLobby: Lobby) => setLobbies((prev) => prev.map((l) => (l.id === updatedLobby.id ? updatedLobby : l)));
     const handleLobbyDeleted = (data: { id: string }) => setLobbies((prev) => prev.filter((l) => l.id !== data.id));
     const handleNavigate = ({ gameId, lobbyId }: { gameId: number, lobbyId: string }) => { if (gameId === Number(id)) navigate(`/play/${gameId}`, { state: { lobbyId } }); };
@@ -72,13 +89,14 @@ export default function GameDetailPage() {
     };
   }, [socket, id, navigate]);
 
-  const handleCreateLobby = async (name: string, maxPlayers: number) => {
+  const handleCreateLobby = async (data: Partial<Lobby>) => {
     if (!game) return;
     try {
-      const newLobby = await createLobby(name, game.id, maxPlayers);
+      const newLobbyData = { ...data, gameId: game.id };
+      const newLobby = await createLobby(newLobbyData);
       if (socket && newLobby) {
         socket.emit('join_game_room', newLobby.id);
-        toast.success(`'${name}' lobisi oluşturuldu!`);
+        toast.success(`'${newLobby.name}' lobisi oluşturuldu!`);
       }
     } catch (err: any) {
       toast.error(err.response?.data?.error || "Lobi oluşturulurken bir hata oluştu.");
@@ -87,7 +105,7 @@ export default function GameDetailPage() {
 
   const handleLogout = () => { if (logout) logout(); navigate("/login"); };
 
-  if (!user || loading) return <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}><CircularProgress /></Box>;
+  if (!user || loading) return <CircularProgress />;
   if (error) return <Container><Typography color="error">{error}</Typography></Container>;
   if (!game) return <Container><Typography>Oyun bulunamadı.</Typography></Container>;
   
@@ -120,7 +138,7 @@ export default function GameDetailPage() {
         <TabPanel index={1} value={tab}>
           <Grid container spacing={3}>
             <Grid size={{ xs: 12, md: 5 }}>
-              <LobbyForm onCreate={handleCreateLobby} />
+              <LobbyForm games={game ? [game] : []} onCreate={handleCreateLobby} canCreateLobby={canCreateLobby} />
             </Grid>
             <Grid size={{ xs: 12, md: 7 }}>
               <LobbyList lobbies={lobbies} onJoin={handleJoin} onLeave={handleLeave} onInvite={handleInvite} onStartGame={handleStartGame} />

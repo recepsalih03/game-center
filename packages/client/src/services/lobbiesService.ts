@@ -8,6 +8,10 @@ export interface Lobby {
   maxPlayers: number;
   playerUsernames: string[];
   status: "open" | "full" | "in-progress";
+  lobbyType: 'normal' | 'event';
+  password?: string;
+  eventStartsAt?: Date;
+  eventEndsAt?: Date;
 }
 
 export const getAllLobbies = async (): Promise<Lobby[]> => {
@@ -20,13 +24,13 @@ export const getLobbiesByGameId = async (gameId: string): Promise<Lobby[]> => {
   return response.data;
 };
 
-export const createLobby = async (name: string, gameId: number, maxPlayers: number): Promise<Lobby> => {
-  const response = await api.post('/lobbies', { name, gameId, maxPlayers });
+export const createLobby = async (data: Partial<Lobby>): Promise<Lobby> => {
+  const response = await api.post('/lobbies', data);
   return response.data;
 };
 
-export const joinLobby = async (lobbyId: string): Promise<Lobby> => {
-  const response = await api.put(`/lobbies/${lobbyId}/join`);
+export const joinLobby = async (lobbyId: string, password?: string): Promise<Lobby> => {
+  const response = await api.put(`/lobbies/${lobbyId}/join`, { password });
   return response.data;
 }
 

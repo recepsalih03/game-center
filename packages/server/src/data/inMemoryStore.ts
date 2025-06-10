@@ -9,6 +9,10 @@ export interface Lobby {
   playerUsernames: string[];
   status: "open" | "full" | "in-progress";
   createdAt: Date;
+  lobbyType: 'normal' | 'event';
+  password?: string;
+  eventStartsAt?: Date;
+  eventEndsAt?: Date;
 }
 
 export interface Game {
@@ -29,8 +33,7 @@ export const games: Game[] = [
     howToPlaySteps: [
       "Her oyuncu bir veya daha fazla kart alır.",
       "Sayılar çekilir ve oyuncular kartlarındaki sayıları işaretler.",
-      "Bir sırayı tamamlayan 'Çinko', tüm kartı tamamlayan 'Tombala' yapar.",
-      "Tombala yapan oyuncu oyunu kazanır.",
+      "Bir sırayı tamamlayan 'Çinko', tüm kartı tamamlayan 'Tombala' yapar."
     ],
     gameComponent: "TombalaBoard"
   },
@@ -39,20 +42,22 @@ export const games: Game[] = [
 export const lobbies: Lobby[] = [];
 
 export function createLobby(
-  name: string,
-  gameId: number,
-  maxPlayers: number,
+  data: Omit<Lobby, 'id' | 'players' | 'playerUsernames' | 'status' | 'createdAt'>,
   creatorUsername: string,
 ): Lobby {
   const newLobby: Lobby = {
     id: uuidv4(),
-    name,
-    gameId,
+    name: data.name,
+    gameId: data.gameId,
+    maxPlayers: data.maxPlayers,
     players: 1,
-    maxPlayers,
     playerUsernames: [creatorUsername],
-    status: maxPlayers === 1 ? "full" : "open",
+    status: data.maxPlayers === 1 ? "full" : "open",
     createdAt: new Date(),
+    lobbyType: data.lobbyType,
+    password: data.password,
+    eventStartsAt: data.eventStartsAt,
+    eventEndsAt: data.eventEndsAt,
   };
   lobbies.push(newLobby);
   return newLobby;
