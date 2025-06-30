@@ -25,6 +25,8 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "crypto-js": "^4.2.0"
+    "@mui/x-date-pickers": "^8.6.0",
+    "crypto-js": "^4.2.0",
+    "dayjs": "^1.11.13"
   }
 }

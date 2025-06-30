@@ -1,9 +1,29 @@
-import React, { useContext } from "react";
-import { Paper, Typography, List, ListItem, ListItemText, IconButton, Stack, Tooltip, Box, Divider, Grid } from "@mui/material";
-import { PersonAdd, Login, PlayArrow, Logout, Lock, Share } from '@mui/icons-material';
-import type { Lobby } from "../../services/lobbiesService";
-import { AuthContext } from '../../contexts/AuthContext';
+import React, { useContext, useEffect, useState } from "react";
+import {
+  Paper,
+  Typography,
+  List,
+  ListItem,
+  ListItemText,
+  IconButton,
+  Stack,
+  Tooltip,
+  Divider,
+} from "@mui/material";
+import {
+  PersonAdd,
+  Login,
+  PlayArrow,
+  Logout,
+  Lock,
+  Share,
+} from "@mui/icons-material";
+import { AuthContext } from "../../contexts/AuthContext";
+import { Lobby } from "../../services/lobbiesService";
 import { toast } from "react-toastify";
+import dayjs from "dayjs";
+import duration from "dayjs/plugin/duration";
+dayjs.extend(duration);
 
 interface Props {
   lobbies: Lobby[];
@@ -13,68 +33,163 @@ interface Props {
   onStartGame: (lobbyId: string) => void;
 }
 
-const LobbyList: React.FC<Props> = ({ lobbies, onJoin, onLeave, onInvite, onStartGame }) => {
+export default function LobbyList({
+  lobbies,
+  onJoin,
+  onLeave,
+  onInvite,
+  onStartGame,
+}: Props) {
   const { user } = useContext(AuthContext);
-  const isUserInLobby = (lobby: Lobby) => lobby.playerUsernames.includes(user?.username || '');
-  const isUserHost = (lobby: Lobby) => lobby.playerUsernames[0] === user?.username;
+  const [now, setNow] = useState(dayjs());
+  const [triggered, setTriggered] = useState<Set<string>>(new Set());
 
-  const handleShare = (lobbyId: string) => {
-    const link = `${window.location.origin}/lobby/${lobbyId}`;
-    navigator.clipboard.writeText(link);
-    toast.success("Lobi davet linki panoya kopyalandı!");
-  };
+  // Zaman ve otomatik start
+  useEffect(() => {
+    const timer = setInterval(() => setNow(dayjs()), 1000);
+    return () => clearInterval(timer);
+  }, []);
 
-  const handleJoinClick = (lobby: Lobby) => {
-    if (lobby.password) {
+  useEffect(() => {
+    lobbies.forEach(l => {
+      if (
+        l.lobbyType === "event" &&
+        now.isAfter(dayjs(l.eventStartsAt)) &&
+        !triggered.has(l.id)
+      ) {
+        onStartGame(l.id);
+        setTriggered(prev => new Set(prev).add(l.id));
+      }
+    });
+  }, [now, lobbies, onStartGame, triggered]);
+
+  const isUserInLobby = (l: Lobby) =>
+    l.playerUsernames.includes(user?.username || "");
+  const isUserHost = (l: Lobby) => l.playerUsernames[0] === user?.username;
+
+  const handleJoinClick = (l: Lobby) => {
+    if (l.password) {
       const pass = prompt("Lütfen lobi şifresini girin:");
       if (pass !== null) {
-        onJoin(lobby.id, lobby.gameId, pass);
+        onJoin(l.id, l.gameId, pass);
       }
     } else {
-      onJoin(lobby.id, lobby.gameId);
+      onJoin(l.id, l.gameId);
     }
   };
 
+  const sorted = lobbies
+    .filter(l =>
+      l.lobbyType === "event" ? dayjs(l.eventEndsAt).isAfter(now) : true
+    )
+    .sort((a, b) => {
+      if (a.lobbyType === "event" && b.lobbyType !== "event") return -1;
+      if (b.lobbyType === "event" && a.lobbyType !== "event") return 1;
+      if (a.lobbyType === "event" && b.lobbyType === "event") {
+        return dayjs(a.eventStartsAt).isBefore(dayjs(b.eventStartsAt))
+          ? -1
+          : 1;
+      }
+      return 0;
+    });
+
   return (
     <Paper sx={{ p: 2 }} elevation={2}>
-      <Typography variant="h6" gutterBottom>Aktif Lobiler</Typography>
-      <List sx={{p:0}}>
-        {lobbies.length === 0 && <Typography sx={{ p: 2 }}>Henüz lobi yok.</Typography>}
-        {lobbies.map(l => (
-          <React.Fragment key={l.id}>
-            <ListItem>
-              <Grid container alignItems="center">
-                <Grid size={{ xs: 12 }}>
+      <Typography variant="h6" gutterBottom>
+        Aktif Lobiler
+      </Typography>
+      <List sx={{ p: 0 }}>
+        {sorted.length === 0 && (
+          <Typography sx={{ p: 2 }}>Henüz lobi yok.</Typography>
+        )}
+        {sorted.map(l => {
+          let subtitle = `${l.players} / ${l.maxPlayers} oyuncu`;
+          if (l.lobbyType === "event") {
+            const start = dayjs(l.eventStartsAt);
+            const diff = start.diff(now);
+            if (diff > 24 * 3600 * 1000) {
+              subtitle += ` • Başlangıç: ${start.format("DD.MM.YYYY HH:mm")}`;
+            } else if (diff > 0) {
+              const rem = dayjs.duration(diff);
+              subtitle += ` • Başlayana Kalan: ${rem.hours()}h ${rem.minutes()}m ${rem.seconds()}s`;
+            } else {
+              subtitle += ` • Başlıyor...`;
+            }
+          }
+
+          return (
+            <React.Fragment key={l.id}>
+              <ListItem>
+                <Stack
+                  direction="row"
+                  justifyContent="space-between"
+                  alignItems="center"
+                  width="100%"
+                >
                   <Stack direction="row" alignItems="center" spacing={1}>
-                    {l.password && <Lock fontSize="small" color="action" />}
-                    <ListItemText 
-                      primary={l.name} 
-                      secondary={`${l.players} / ${l.maxPlayers} Oyuncu - Kurucu: ${l.playerUsernames[0]}`} 
-                    />
+                    {l.password && <Lock color="action" />}
+                    <ListItemText primary={l.name} secondary={subtitle} />
                   </Stack>
-                </Grid>
-                <Grid size="auto">
-                  <Stack direction="row" spacing={0.5}>
-                    {isUserHost(l) && l.status !== 'in-progress' && (
-                       <Tooltip title="Oyunu Başlat"><IconButton size="small" color="warning" onClick={() => onStartGame(l.id)}><PlayArrow /></IconButton></Tooltip>
+                  <Stack direction="row" spacing={1}>
+                    {isUserHost(l) && l.status !== "in-progress" && (
+                      <Tooltip title="Oyunu Başlat">
+                        <IconButton
+                          color="warning"
+                          onClick={() => onStartGame(l.id)}
+                        >
+                          <PlayArrow />
+                        </IconButton>
+                      </Tooltip>
                     )}
                     {isUserInLobby(l) ? (
-                       <Tooltip title="Lobiden Ayrıl"><IconButton size="small" color="error" onClick={() => onLeave(l.id)}><Logout /></IconButton></Tooltip>
+                      <Tooltip title="Lobiden Ayrıl">
+                        <IconButton
+                          color="error"
+                          onClick={() => onLeave(l.id)}
+                        >
+                          <Logout />
+                        </IconButton>
+                      </Tooltip>
                     ) : (
-                      <Tooltip title="Katıl"><span><IconButton size="small" color="success" onClick={() => handleJoinClick(l)} disabled={l.status !== "open"}><Login /></IconButton></span></Tooltip>
+                      <Tooltip title="Katıl">
+                        <IconButton
+                          color="success"
+                          onClick={() => handleJoinClick(l)}
+                          disabled={l.status !== "open"}
+                        >
+                          <Login />
+                        </IconButton>
+                      </Tooltip>
                     )}
-                     <Tooltip title="Davet Et"><IconButton size="small" color="primary" onClick={() => onInvite(l)}><PersonAdd /></IconButton></Tooltip>
-                     <Tooltip title="Paylaş"><IconButton size="small" color="info" onClick={() => handleShare(l.id)}><Share /></IconButton></Tooltip>
+                    <Tooltip title="Davet Et">
+                      <IconButton
+                        color="primary"
+                        onClick={() => onInvite(l)}
+                      >
+                        <PersonAdd />
+                      </IconButton>
+                    </Tooltip>
+                    <Tooltip title="Paylaş">
+                      <IconButton
+                        color="info"
+                        onClick={() => {
+                          navigator.clipboard.writeText(
+                            `${window.location.origin}/lobby/${l.id}`
+                          );
+                          toast.success("Lobi linki kopyalandı!");
+                        }}
+                      >
+                        <Share />
+                      </IconButton>
+                    </Tooltip>
                   </Stack>
-                </Grid>
-              </Grid>
-            </ListItem>
-            <Divider component="li" />
-          </React.Fragment>
-        ))}
+                </Stack>
+              </ListItem>
+              <Divider component="li" />
+            </React.Fragment>
+          );
+        })}
       </List>
     </Paper>
   );
-};
-
-export default LobbyList;
+}

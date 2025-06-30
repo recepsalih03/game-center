@@ -14,23 +14,37 @@ interface InviteNotificationProps {
   closeToast?: () => void;
 }
 
-const InviteNotification: React.FC<InviteNotificationProps> = ({ fromUser, lobbyName, lobbyId, gameTitle, gameId, closeToast }) => {
+export default function InviteNotification({
+  fromUser,
+  lobbyName,
+  lobbyId,
+  gameTitle,
+  gameId,
+  closeToast,
+}: InviteNotificationProps) {
   const navigate = useNavigate();
   const socket = useSocket();
 
   const handleJoinClick = async () => {
     try {
-      await joinLobby(lobbyId);
-      if (socket) {
-        socket.emit('join_game_room', lobbyId);
+      const pass = prompt("Bu lobi şifreli. Lütfen şifreyi girin:");
+      if (pass === null) {
+        closeToast?.();
+        return;
       }
+
+      await joinLobby(lobbyId, pass);
+      socket?.emit('join_game_room', lobbyId);
+
       toast.success(`"${lobbyName}" lobisine katıldınız!`);
-      navigate(`/game/1`);
-    } catch (error) {
-      toast.error("Lobiye katılırken bir hata oluştu.");
+      navigate(`/game/1`, { state: { autoJoinLobbyId: lobbyId } });
+    } catch (error: any) {
+      const msg = error.response?.data?.error || "Lobiye katılırken bir hata oluştu.";
+      toast.error(msg);
       console.error(error);
+    } finally {
+      closeToast?.();
     }
-    if(closeToast) closeToast();
   };
 
   return (
@@ -48,6 +62,4 @@ const InviteNotification: React.FC<InviteNotificationProps> = ({ fromUser, lobby
       </Button>
     </Box>
   );
-};
-
-export default InviteNotification;
+}

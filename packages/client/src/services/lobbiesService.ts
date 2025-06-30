@@ -12,6 +12,7 @@ export interface Lobby {
   password?: string;
   eventStartsAt?: Date;
   eventEndsAt?: Date;
+  createdAt: Date;
 }
 
 export const getAllLobbies = async (): Promise<Lobby[]> => {
