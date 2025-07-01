@@ -1,194 +1,306 @@
-import React, { useState, useEffect, useContext, useCallback } from "react";
+"use client"
+
+import { useState, useEffect, useContext } from "react"
 import {
   Box,
   Container,
   CssBaseline,
-  Tabs,
-  Tab,
-  Grid,
-  Button,
-  CircularProgress,
   Typography,
-} from "@mui/material";
-import { useNavigate, useParams, useLocation } from "react-router-dom";
-import dayjs from "dayjs";
-
-import { AuthContext } from "../contexts/AuthContext";
-import { useSocket } from "../contexts/SocketContext";
-import { useLobbyActions } from "../hooks/useLobbyActions";
-
-import HeaderBar from "../components/HeaderBar";
-import AvatarMenu from "../components/AvatarMenu";
-import ProfileDialog from "../components/ProfileDialog";
-import GameOverview from "../components/GameOverview";
-import HowToPlay from "../components/HowtoPlay";
-import LobbyForm from "../components/GameLobbySection/LobbyForm";
-import LobbyList from "../components/GameLobbySection/LobbyList";
-import InvitePlayerDialog from "../components/InvitePlayerDialog";
-
-import { Game, getGameById } from "../services/gamesService";
-import { Lobby, getLobbiesByGameId, createLobby } from "../services/lobbiesService";
-
-const TabPanel: React.FC<{ index: number; value: number; children: React.ReactNode }> = ({
-  index,
-  value,
-  children,
-}) => (index === value ? <Box pt={3}>{children}</Box> : null);
+  Button,
+  Paper,
+  Grid,
+  Chip,
+  Divider,
+  Card,
+  CardContent,
+  CardMedia,
+  Fade,
+  useTheme,
+  alpha,
+  CircularProgress,
+} from "@mui/material"
+import { PlayArrow, People, Info, EmojiEvents } from "@mui/icons-material"
+import { useParams, useNavigate } from "react-router-dom"
+import { AuthContext } from "../contexts/AuthContext"
+import { type Game, getGameById } from "../services/gamesService"
+import { type Lobby, getAllLobbies } from "../services/lobbiesService"
+import HeaderBar from "../components/HeaderBar"
+import AvatarMenu from "../components/AvatarMenu"
+import ProfileDialog from "../components/ProfileDialog"
+import HowToPlay from "../components/HowtoPlay"
 
 export default function GameDetailPage() {
-  const { id } = useParams<{ id: string }>();
-  const navigate = useNavigate();
-  const location = useLocation();
-  const { user, logout } = useContext(AuthContext);
-  const socket = useSocket();
+  const theme = useTheme()
+  const { id } = useParams<{ id: string }>()
+  const navigate = useNavigate()
+  const { user, logout } = useContext(AuthContext)
 
-  const [game, setGame] = useState<Game | null>(null);
-  const [lobbies, setLobbies] = useState<Lobby[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [anchor, setAnchor] = useState<HTMLElement | null>(null);
-  const [profile, setProfile] = useState(false);
-  const [tab, setTab] = useState(0);
-
-  const { handleJoin, handleLeave, handleInvite, handleStartGame, isInviteModalOpen, invitingLobby, closeInviteModal } =
-    useLobbyActions(game ? [game] : []);
-
-  const canCreateLobby = user
-    ? !lobbies.some(
-        (l) =>
-          l.playerUsernames[0] === user.username &&
-          (l.lobbyType !== "event" || dayjs(l.eventEndsAt).isAfter(dayjs()))
-      )
-    : false;
-
-  const fetchGameData = useCallback(async () => {
-    if (!id) return;
-    setLoading(true);
-    try {
-      const [gameData, lobbiesData] = await Promise.all([getGameById(id), getLobbiesByGameId(id)]);
-      setGame(gameData);
-      setLobbies(lobbiesData);
-    } catch {
-      setError("Oyun verileri yüklenemedi.");
-    } finally {
-      setLoading(false);
-    }
-  }, [id]);
+  const [game, setGame] = useState<Game | null>(null)
+  const [lobbies, setLobbies] = useState<Lobby[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const [menuAnchor, setMenuAnchor] = useState<HTMLElement | null>(null)
+  const [profileOpen, setProfileOpen] = useState(false)
 
   useEffect(() => {
-    fetchGameData();
-  }, [fetchGameData]);
+    const fetchData = async () => {
+      if (!id) return
 
-  useEffect(() => {
-    const autoJoinLobbyId = (location.state as any)?.autoJoinLobbyId;
-    if (autoJoinLobbyId && game) {
-      const lobbyToJoin = lobbies.find((l) => l.id === autoJoinLobbyId);
-      const userAlreadyInLobby = lobbyToJoin?.playerUsernames.includes(user?.username || "");
-
-      if (lobbyToJoin && !userAlreadyInLobby) {
-        handleJoin(autoJoinLobbyId, game.id);
+      setLoading(true)
+      try {
+        const [gameData, lobbiesData] = await Promise.all([getGameById(id), getAllLobbies()])
+        setGame(gameData)
+        setLobbies(lobbiesData.filter((l) => l.gameId === Number.parseInt(id)))
+      } catch (err) {
+        setError("Oyun bilgileri yüklenemedi.")
+      } finally {
+        setLoading(false)
       }
-
-      navigate(location.pathname, { replace: true, state: {} });
     }
-  }, [location, game, lobbies, user, handleJoin, navigate]);
 
-  useEffect(() => {
-    if (!socket || !id) return;
-    const handleLobbyCreated = (newLobby: Lobby) => {
-      if (newLobby.gameId === Number(id)) setLobbies((prev) => [newLobby, ...prev]);
-    };
-    const handleLobbyUpdated = (updatedLobby: Lobby) =>
-      setLobbies((prev) => prev.map((l) => (l.id === updatedLobby.id ? updatedLobby : l)));
-    const handleLobbyDeleted = (data: { id: string }) =>
-      setLobbies((prev) => prev.filter((l) => l.id !== data.id));
-    const handleNavigate = ({ gameId, lobbyId }: { gameId: number; lobbyId: string }) => {
-      if (gameId === Number(id)) navigate(`/play/${gameId}`, { state: { lobbyId } });
-    };
-
-    socket.on("lobby_created", handleLobbyCreated);
-    socket.on("lobby_updated", handleLobbyUpdated);
-    socket.on("lobby_deleted", handleLobbyDeleted);
-    socket.on("navigate_to_game", handleNavigate);
-    return () => {
-      socket.off("lobby_created", handleLobbyCreated);
-      socket.off("lobby_updated", handleLobbyUpdated);
-      socket.off("lobby_deleted", handleLobbyDeleted);
-      socket.off("navigate_to_game", handleNavigate);
-    };
-  }, [socket, id, navigate]);
-
-  const handleCreateLobby = async (data: Partial<Lobby>) => {
-    if (!game) return;
-    try {
-      const newLobbyData = { ...data, gameId: game.id };
-      const newLobby = await createLobby(newLobbyData);
-      if (socket && newLobby) {
-        socket.emit("join_game_room", newLobby.id);
-        navigate(location.pathname, { state: { autoJoinLobbyId: newLobby.id } });
-      }
-    } catch (err: any) {
-    }
-  };
+    fetchData()
+  }, [id])
 
   const handleLogout = () => {
-    logout();
-    navigate("/login");
-  };
+    logout()
+    navigate("/login")
+  }
 
-  if (!user || loading) return <CircularProgress />;
-  if (error) return <Container><Typography color="error">{error}</Typography></Container>;
-  if (!game) return <Container><Typography>Oyun bulunamadı.</Typography></Container>;
+  const handlePlayNow = () => {
+    navigate("/")
+  }
 
-  const initials = (name: string) => name.split(" ").map((x) => x[0]).join("").toUpperCase();
-  const tabLabels = ["Genel Bakış", "Lobiler", "Nasıl Oynanır"];
+  const getInitials = (name: string) =>
+    name
+      .split(" ")
+      .map((n) => n[0])
+      .join("")
+      .toUpperCase()
 
-  const handlePlaySolo = () => {
-    const soloLobbyId = `solo_${user.username}_${Date.now()}`;
-    navigate(`/play/${game.id}`, { state: { lobbyId: soloLobbyId } });
-  };
+  if (!user) return <CircularProgress />
+
+  if (loading) {
+    return (
+      <Box display="flex" justifyContent="center" alignItems="center" minHeight="100vh">
+        <CircularProgress size={60} />
+      </Box>
+    )
+  }
+
+  if (error || !game) {
+    return (
+      <Box display="flex" justifyContent="center" alignItems="center" minHeight="100vh">
+        <Typography color="error" variant="h6">
+          {error || "Oyun bulunamadı"}
+        </Typography>
+      </Box>
+    )
+  }
 
   return (
     <>
       <CssBaseline />
-      <InvitePlayerDialog open={isInviteModalOpen} onClose={closeInviteModal} lobby={invitingLobby} game={game} />
-      <HeaderBar username={user.username} notifCount={0} onAvatarClick={(e) => setAnchor(e.currentTarget)} getInitials={initials} />
-      <AvatarMenu anchorEl={anchor} onClose={() => setAnchor(null)} onProfile={() => { setProfile(true); setAnchor(null); }} onLogout={handleLogout} />
-      <ProfileDialog open={profile} onClose={() => setProfile(false)} username={user.username} memberSince="Jan 2025" getInitials={initials} />
+      <HeaderBar
+        username={user.username}
+        notifCount={0}
+        onAvatarClick={(e) => setMenuAnchor(e.currentTarget)}
+        getInitials={getInitials}
+      />
 
-      <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
-        <Tabs
-          value={tab}
-          onChange={(_, v) => setTab(v)}
-          textColor="primary"
-          indicatorColor="primary"
-          sx={{ borderBottom: 1, borderColor: "divider" }}
-        >
-          {tabLabels.map((label, i) => (
-            <Tab key={i} label={label} />
-          ))}
-        </Tabs>
-        <TabPanel index={0} value={tab}>
-          <GameOverview game={game} />
-          <Box sx={{ mt: 3, display: "flex", gap: 2 }}>
-            <Button variant="contained" size="large" onClick={handlePlaySolo}>Tek Başına Oyna</Button>
-            <Button variant="outlined" size="large" onClick={() => setTab(1)}>Lobilere Göz At</Button>
-          </Box>
-        </TabPanel>
-        <TabPanel index={1} value={tab}>
-          <Grid container spacing={3}>
-            <Grid size={{ xs: 12, md: 5 }}>
-              <LobbyForm games={[game]} onCreate={handleCreateLobby} canCreateLobby={canCreateLobby} />
+      <AvatarMenu
+        anchorEl={menuAnchor}
+        onClose={() => setMenuAnchor(null)}
+        onProfile={() => {
+          setProfileOpen(true)
+          setMenuAnchor(null)
+        }}
+        onLogout={handleLogout}
+      />
+
+      <ProfileDialog
+        open={profileOpen}
+        onClose={() => setProfileOpen(false)}
+        username={user.username}
+        memberSince="Mayıs 2025"
+        getInitials={getInitials}
+      />
+
+      <Box
+        sx={{
+          background: `linear-gradient(135deg, ${alpha(theme.palette.primary.main, 0.1)} 0%, ${alpha(theme.palette.secondary.main, 0.1)} 100%)`,
+          py: 8,
+          position: "relative",
+          overflow: "hidden",
+        }}
+      >
+        <Container maxWidth="lg">
+          <Fade in timeout={1000}>
+            <Grid container spacing={4} alignItems="center">
+              <Grid size={{ xs: 12, md: 6 }}>
+                <Card
+                  elevation={8}
+                  sx={{
+                    borderRadius: 4,
+                    overflow: "hidden",
+                    background: `linear-gradient(135deg, ${alpha(theme.palette.background.paper, 0.9)} 0%, ${alpha(theme.palette.background.default, 0.7)} 100%)`,
+                    backdropFilter: "blur(20px)",
+                  }}
+                >
+                  <CardMedia
+                    component="img"
+                    height="300"
+                    image={game.imageUrl}
+                    alt={game.title}
+                    sx={{
+                      objectFit: "cover",
+                    }}
+                  />
+                </Card>
+              </Grid>
+
+              <Grid size={{ xs: 12, md: 6 }}>
+                <Box>
+                  <Chip label="Popüler Oyun" color="primary" icon={<EmojiEvents />} sx={{ mb: 2 }} />
+
+                  <Typography
+                    variant="h2"
+                    component="h1"
+                    gutterBottom
+                    sx={{
+                      fontWeight: 700,
+                      background: `linear-gradient(45deg, ${theme.palette.primary.main}, ${theme.palette.secondary.main})`,
+                      backgroundClip: "text",
+                      WebkitBackgroundClip: "text",
+                      WebkitTextFillColor: "transparent",
+                    }}
+                  >
+                    {game.title}
+                  </Typography>
+
+                  <Typography variant="h6" color="text.secondary" paragraph sx={{ mb: 4, lineHeight: 1.6 }}>
+                    {game.description}
+                  </Typography>
+
+                  <Box sx={{ display: "flex", gap: 2, mb: 3 }}>
+                    <Chip icon={<People />} label={`${lobbies.length} Aktif Lobi`} variant="outlined" />
+                    <Chip icon={<Info />} label="Kolay Öğrenilir" variant="outlined" />
+                  </Box>
+
+                  <Button
+                    variant="contained"
+                    size="large"
+                    startIcon={<PlayArrow />}
+                    onClick={handlePlayNow}
+                    sx={{
+                      py: 1.5,
+                      px: 4,
+                      borderRadius: 3,
+                      fontSize: "1.1rem",
+                      fontWeight: 600,
+                      background: `linear-gradient(45deg, ${theme.palette.primary.main}, ${theme.palette.primary.dark})`,
+                      "&:hover": {
+                        background: `linear-gradient(45deg, ${theme.palette.primary.dark}, ${theme.palette.primary.main})`,
+                        transform: "translateY(-2px)",
+                        boxShadow: theme.shadows[8],
+                      },
+                      transition: "all 0.3s ease",
+                    }}
+                  >
+                    OYNA
+                  </Button>
+                </Box>
+              </Grid>
             </Grid>
-            <Grid size={{ xs: 12, md: 7 }}>
-              <LobbyList lobbies={lobbies} onJoin={handleJoin} onLeave={handleLeave} onInvite={handleInvite} onStartGame={handleStartGame} />
-            </Grid>
+          </Fade>
+        </Container>
+      </Box>
+
+      <Container maxWidth="lg" sx={{ py: 6 }}>
+        <Grid container spacing={4}>
+          <Grid size={{ xs: 12, md: 8 }}>
+            <Fade in timeout={1200}>
+              <Paper
+                elevation={0}
+                sx={{
+                  p: 4,
+                  borderRadius: 3,
+                  background: `linear-gradient(135deg, ${alpha(theme.palette.background.paper, 0.8)} 0%, ${alpha(theme.palette.background.default, 0.4)} 100%)`,
+                  backdropFilter: "blur(10px)",
+                  border: `1px solid ${alpha(theme.palette.divider, 0.1)}`,
+                }}
+              >
+                <HowToPlay
+                  steps={game.howToPlaySteps}
+                  videoLinks={[
+                    { label: "Nasıl Oynanır?", url: "#" },
+                    { label: "İpuçları", url: "#" },
+                  ]}
+                />
+              </Paper>
+            </Fade>
           </Grid>
-        </TabPanel>
-        <TabPanel index={2} value={tab}>
-          <HowToPlay steps={game.howToPlaySteps} />
-        </TabPanel>
+
+          <Grid size={{ xs: 12, md: 4 }}>
+            <Fade in timeout={1400}>
+              <Paper
+                elevation={0}
+                sx={{
+                  p: 3,
+                  borderRadius: 3,
+                  background: `linear-gradient(135deg, ${alpha(theme.palette.background.paper, 0.9)} 0%, ${alpha(theme.palette.background.default, 0.5)} 100%)`,
+                  backdropFilter: "blur(10px)",
+                  border: `1px solid ${alpha(theme.palette.divider, 0.1)}`,
+                  height: "fit-content",
+                }}
+              >
+                <Typography variant="h6" gutterBottom sx={{ fontWeight: 600 }}>
+                  Aktif Lobiler
+                </Typography>
+                <Divider sx={{ mb: 2 }} />
+
+                {lobbies.length === 0 ? (
+                  <Typography color="text.secondary" textAlign="center" py={3}>
+                    Henüz aktif lobi yok
+                  </Typography>
+                ) : (
+                  <Box>
+                    {lobbies.slice(0, 5).map((lobby) => (
+                      <Card
+                        key={lobby.id}
+                        variant="outlined"
+                        sx={{
+                          mb: 2,
+                          borderRadius: 2,
+                          "&:hover": {
+                            boxShadow: theme.shadows[4],
+                            transform: "translateY(-1px)",
+                          },
+                          transition: "all 0.2s ease",
+                        }}
+                      >
+                        <CardContent sx={{ p: 2, "&:last-child": { pb: 2 } }}>
+                          <Typography variant="subtitle2" fontWeight={600}>
+                            {lobby.name}
+                          </Typography>
+                          <Typography variant="body2" color="text.secondary">
+                            {lobby.players}/{lobby.maxPlayers} oyuncu
+                          </Typography>
+                          <Chip
+                            label={lobby.status === "open" ? "Açık" : "Dolu"}
+                            size="small"
+                            color={lobby.status === "open" ? "success" : "default"}
+                            sx={{ mt: 1 }}
+                          />
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </Box>
+                )}
+              </Paper>
+            </Fade>
+          </Grid>
+        </Grid>
       </Container>
     </>
-  );
+  )
 }
