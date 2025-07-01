@@ -212,7 +212,6 @@ export default function GamePlayPage() {
 
       <Container maxWidth="xl" sx={{ py: 4 }}>
         <Grid container spacing={4}>
-          {/* Game Board */}
           <Grid size={{ xs: 12, lg: 8 }}>
             <Fade in timeout={1000}>
               <Paper

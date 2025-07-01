@@ -1,0 +1,38 @@
+export const tombalaPlayerStats = [
+  {
+    username: "deneme_hesap",
+    gamesPlayed: 245,
+    gamesWon: 67,
+    winRate: 27.3,
+    fastestWin: "3m 45s",
+    averagePosition: 2.1,
+    totalScore: 15420,
+  },
+  {
+    username: "hesap_deneme",
+    gamesPlayed: 189,
+    gamesWon: 52,
+    winRate: 27.5,
+    fastestWin: "4m 12s",
+    averagePosition: 2.3,
+    totalScore: 12890,
+  },
+  {
+    username: "recep_salih",
+    gamesPlayed: 312,
+    gamesWon: 89,
+    winRate: 28.5,
+    fastestWin: "4m 20s",
+    averagePosition: 1.9,
+    totalScore: 18750,
+  },
+  {
+    username: "kullanici",
+    gamesPlayed: 156,
+    gamesWon: 38,
+    winRate: 24.4,
+    fastestWin: "5m 03s",
+    averagePosition: 2.7,
+    totalScore: 9340,
+  },
+]

@@ -2,8 +2,8 @@
 
 import { Typography, Divider, Box, useTheme, alpha } from "@mui/material"
 import { SportsEsports } from "@mui/icons-material"
-import LobbyForm from "./GameLobbySection/LobbyForm"
-import LobbyList from "./GameLobbySection/LobbyList"
+import LobbyForm from "./LobbyForm"
+import LobbyList from "./LobbyList"
 import type { Lobby } from "../services/lobbiesService"
 import type { Game } from "../services/gamesService"
 

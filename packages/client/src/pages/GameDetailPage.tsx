@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect, useContext } from "react"
+
 import {
   Box,
   Container,
@@ -18,16 +19,20 @@ import {
   useTheme,
   alpha,
   CircularProgress,
+  IconButton,
+  Tooltip,
 } from "@mui/material"
-import { PlayArrow, People, Info, EmojiEvents } from "@mui/icons-material"
+
+import { PlayArrow, People, Info, EmojiEvents, MenuBook } from "@mui/icons-material"
 import { useParams, useNavigate } from "react-router-dom"
 import { AuthContext } from "../contexts/AuthContext"
 import { type Game, getGameById } from "../services/gamesService"
-import { type Lobby, getAllLobbies } from "../services/lobbiesService"
+import { type Lobby, getAllLobbies, createLobby } from "../services/lobbiesService"
 import HeaderBar from "../components/HeaderBar"
 import AvatarMenu from "../components/AvatarMenu"
 import ProfileDialog from "../components/ProfileDialog"
 import HowToPlay from "../components/HowtoPlay"
+import PlayerStatsModal from "../components/PlayerStatsModal"
 
 export default function GameDetailPage() {
   const theme = useTheme()
@@ -41,11 +46,11 @@ export default function GameDetailPage() {
   const [error, setError] = useState<string | null>(null)
   const [menuAnchor, setMenuAnchor] = useState<HTMLElement | null>(null)
   const [profileOpen, setProfileOpen] = useState(false)
+  const [statsOpen, setStatsOpen] = useState(false)
 
   useEffect(() => {
     const fetchData = async () => {
       if (!id) return
-
       setLoading(true)
       try {
         const [gameData, lobbiesData] = await Promise.all([getGameById(id), getAllLobbies()])
@@ -57,7 +62,6 @@ export default function GameDetailPage() {
         setLoading(false)
       }
     }
-
     fetchData()
   }, [id])
 
@@ -67,7 +71,7 @@ export default function GameDetailPage() {
   }
 
   const handlePlayNow = () => {
-    navigate("/")
+    navigate(`/play/${id}`, { state: { solo: true } });
   }
 
   const getInitials = (name: string) =>
@@ -76,6 +80,8 @@ export default function GameDetailPage() {
       .map((n) => n[0])
       .join("")
       .toUpperCase()
+
+  const isTombalaGame = game?.title?.toLowerCase().includes("tombala")
 
   if (!user) return <CircularProgress />
 
@@ -106,7 +112,6 @@ export default function GameDetailPage() {
         onAvatarClick={(e) => setMenuAnchor(e.currentTarget)}
         getInitials={getInitials}
       />
-
       <AvatarMenu
         anchorEl={menuAnchor}
         onClose={() => setMenuAnchor(null)}
@@ -116,7 +121,6 @@ export default function GameDetailPage() {
         }}
         onLogout={handleLogout}
       />
-
       <ProfileDialog
         open={profileOpen}
         onClose={() => setProfileOpen(false)}
@@ -124,6 +128,8 @@ export default function GameDetailPage() {
         memberSince="Mayıs 2025"
         getInitials={getInitials}
       />
+
+      {isTombalaGame && <PlayerStatsModal open={statsOpen} onClose={() => setStatsOpen(false)} />}
 
       <Box
         sx={{
@@ -157,11 +163,29 @@ export default function GameDetailPage() {
                   />
                 </Card>
               </Grid>
-
               <Grid size={{ xs: 12, md: 6 }}>
                 <Box>
-                  <Chip label="Popüler Oyun" color="primary" icon={<EmojiEvents />} sx={{ mb: 2 }} />
-
+                  <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 2 }}>
+                    <Chip label="Popüler Oyun" color="primary" icon={<EmojiEvents />} />
+                    {isTombalaGame && (
+                      <Tooltip title="Oyuncu İstatistikleri">
+                        <IconButton
+                          onClick={() => setStatsOpen(true)}
+                          sx={{
+                            background: `linear-gradient(45deg, ${alpha(theme.palette.secondary.main, 0.1)} 0%, ${alpha(theme.palette.secondary.light, 0.2)} 100%)`,
+                            border: `1px solid ${alpha(theme.palette.secondary.main, 0.3)}`,
+                            "&:hover": {
+                              background: `linear-gradient(45deg, ${alpha(theme.palette.secondary.main, 0.2)} 0%, ${alpha(theme.palette.secondary.light, 0.3)} 100%)`,
+                              transform: "scale(1.05)",
+                            },
+                            transition: "all 0.2s ease",
+                          }}
+                        >
+                          <MenuBook color="secondary" />
+                        </IconButton>
+                      </Tooltip>
+                    )}
+                  </Box>
                   <Typography
                     variant="h2"
                     component="h1"
@@ -176,16 +200,13 @@ export default function GameDetailPage() {
                   >
                     {game.title}
                   </Typography>
-
                   <Typography variant="h6" color="text.secondary" paragraph sx={{ mb: 4, lineHeight: 1.6 }}>
                     {game.description}
                   </Typography>
-
                   <Box sx={{ display: "flex", gap: 2, mb: 3 }}>
                     <Chip icon={<People />} label={`${lobbies.length} Aktif Lobi`} variant="outlined" />
                     <Chip icon={<Info />} label="Kolay Öğrenilir" variant="outlined" />
                   </Box>
-
                   <Button
                     variant="contained"
                     size="large"
@@ -239,7 +260,6 @@ export default function GameDetailPage() {
               </Paper>
             </Fade>
           </Grid>
-
           <Grid size={{ xs: 12, md: 4 }}>
             <Fade in timeout={1400}>
               <Paper
@@ -257,7 +277,6 @@ export default function GameDetailPage() {
                   Aktif Lobiler
                 </Typography>
                 <Divider sx={{ mb: 2 }} />
-
                 {lobbies.length === 0 ? (
                   <Typography color="text.secondary" textAlign="center" py={3}>
                     Henüz aktif lobi yok
