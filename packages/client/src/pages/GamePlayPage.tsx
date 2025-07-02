@@ -40,17 +40,18 @@ export default function GamePlayPage() {
   const { user, logout } = useContext(AuthContext)
   const navigate = useNavigate()
 
+  const lobbyId = location.state?.lobbyId
+  const isSolo = !lobbyId
+
   const [game, setGame] = useState<Game | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [gameLog, setGameLog] = useState<string[]>([])
-  const [gameState, setGameState] = useState<any>(null)
+  const [gameState, setGameState] = useState<any>(isSolo ? { players: [user?.username] } : null)
   const [anchor, setAnchor] = useState<HTMLElement | null>(null)
   const [profile, setProfile] = useState(false)
   const [isGameOver, setGameOver] = useState(false)
   const [winner, setWinner] = useState("")
-
-  const lobbyId = location.state?.lobbyId
 
   useEffect(() => {
     if (!gameId) {
@@ -65,14 +66,13 @@ export default function GamePlayPage() {
   }, [gameId])
 
   useEffect(() => {
+    if (isSolo) return
     if (!socket) return
 
-    socket.emit("join_game_room", lobbyId)
-
     const handleWinVerified = ({ winnerUsername, claimType }: { winnerUsername: string; claimType: string }) =>
-      setGameLog((prev) => [...prev, `🎉 ${winnerUsername}, ${claimType.toUpperCase()} yaptı! 🎉`])
+      setGameLog((p) => [...p, `🎉 ${winnerUsername}, ${claimType.toUpperCase()} yaptı! 🎉`])
 
-    const handleGameStateUpdate = (state: any) => setGameState(state)
+    const handleGameStateUpdate = (s: any) => setGameState(s)
 
     const handleGameOver = ({ winnerUsername }: { winnerUsername: string }) => {
       setWinner(winnerUsername)
@@ -84,14 +84,25 @@ export default function GamePlayPage() {
     socket.on("game_over", handleGameOver)
 
     return () => {
-      socket.off("win_verified")
-      socket.off("game_state_update")
-      socket.off("game_over")
+      socket.off("win_verified", handleWinVerified)
+      socket.off("game_state_update", handleGameStateUpdate)
+      socket.off("game_over", handleGameOver)
     }
-  }, [socket, lobbyId])
+  }, [socket, isSolo])
+
+  const handleLocalGameStateUpdate = (s: any) => setGameState(s)
+
+  const handleLocalWin = ({ winnerUsername, claimType }: { winnerUsername: string; claimType: string }) => {
+    setGameLog((p) => [...p, `🎉 ${winnerUsername}, ${claimType.toUpperCase()} yaptı! 🎉`])
+    setGameState((prev: any) => ({ ...prev, [claimType]: winnerUsername }))
+    if (claimType === "tombala") {
+      setWinner(winnerUsername)
+      setGameOver(true)
+    }
+  }
 
   const handleLogout = () => {
-    if (logout) logout()
+    logout()
     navigate("/")
   }
 
@@ -102,15 +113,14 @@ export default function GamePlayPage() {
       .join("")
       .toUpperCase()
 
-  if (loading || !user) {
+  if (loading || !user)
     return (
       <Box display="flex" justifyContent="center" alignItems="center" minHeight="100vh">
         <CircularProgress size={60} />
       </Box>
     )
-  }
 
-  if (error) {
+  if (error)
     return (
       <Box display="flex" justifyContent="center" alignItems="center" minHeight="100vh">
         <Typography color="error" variant="h6">
@@ -118,46 +128,33 @@ export default function GamePlayPage() {
         </Typography>
       </Box>
     )
-  }
 
-  if (!game) {
+  if (!game)
     return (
       <Box display="flex" justifyContent="center" alignItems="center" minHeight="100vh">
         <Typography variant="h6">Oyun bulunamadı.</Typography>
       </Box>
     )
-  }
 
   return (
     <>
       <CssBaseline />
       <GameOverDialog open={isGameOver} winner={winner} />
-
       <HeaderBar
         username={user.username}
         notifCount={0}
         onAvatarClick={(e) => setAnchor(e.currentTarget)}
         getInitials={initials}
       />
-
-      <AvatarMenu
-        anchorEl={anchor}
-        onClose={() => setAnchor(null)}
-        onProfile={() => setProfile(true)}
-        onLogout={handleLogout}
-      />
-
-      <ProfileDialog
-        open={profile}
-        onClose={() => setProfile(false)}
-        username={user.username}
-        memberSince="Mayıs 2025"
-        getInitials={initials}
-      />
+      <AvatarMenu anchorEl={anchor} onClose={() => setAnchor(null)} onProfile={() => setProfile(true)} onLogout={handleLogout} />
+      <ProfileDialog open={profile} onClose={() => setProfile(false)} username={user.username} memberSince="Mayıs 2025" getInitials={initials} />
 
       <Box
         sx={{
-          background: `linear-gradient(135deg, ${alpha(theme.palette.primary.main, 0.1)} 0%, ${alpha(theme.palette.secondary.main, 0.1)} 100%)`,
+          background: `linear-gradient(135deg, ${alpha(theme.palette.primary.main, 0.1)} 0%, ${alpha(
+            theme.palette.secondary.main,
+            0.1,
+          )} 100%)`,
           py: 3,
           borderBottom: `1px solid ${alpha(theme.palette.divider, 0.1)}`,
         }}
@@ -190,17 +187,12 @@ export default function GamePlayPage() {
               <Box display="flex" alignItems="center" gap={2}>
                 <Chip icon={<People />} label={`${gameState.players.length} Oyuncu`} variant="outlined" />
                 <AvatarGroup max={4}>
-                  {gameState.players.map((player: string, index: number) => (
+                  {gameState.players.map((p: string) => (
                     <Avatar
-                      key={player}
-                      sx={{
-                        bgcolor: theme.palette.primary.main,
-                        width: 32,
-                        height: 32,
-                        fontSize: "0.8rem",
-                      }}
+                      key={p}
+                      sx={{ bgcolor: theme.palette.primary.main, width: 32, height: 32, fontSize: "0.8rem" }}
                     >
-                      {initials(player)}
+                      {initials(p)}
                     </Avatar>
                   ))}
                 </AvatarGroup>
@@ -219,12 +211,22 @@ export default function GamePlayPage() {
                 sx={{
                   borderRadius: 3,
                   overflow: "hidden",
-                  background: `linear-gradient(135deg, ${alpha(theme.palette.background.paper, 0.9)} 0%, ${alpha(theme.palette.background.default, 0.5)} 100%)`,
+                  background: `linear-gradient(135deg, ${alpha(
+                    theme.palette.background.paper,
+                    0.9,
+                  )} 0%, ${alpha(theme.palette.background.default, 0.5)} 100%)`,
                   backdropFilter: "blur(10px)",
                   border: `1px solid ${alpha(theme.palette.divider, 0.1)}`,
                 }}
               >
-                <TombalaBoard socket={socket} lobbyId={lobbyId} username={user.username} gameState={gameState} />
+                <TombalaBoard
+                  socket={socket}
+                  lobbyId={lobbyId}
+                  username={user.username}
+                  gameState={gameState}
+                  onLocalGameStateUpdate={handleLocalGameStateUpdate}
+                  onLocalWin={handleLocalWin}
+                />
               </Paper>
             </Fade>
           </Grid>
@@ -236,7 +238,10 @@ export default function GamePlayPage() {
                   elevation={0}
                   sx={{
                     borderRadius: 3,
-                    background: `linear-gradient(135deg, ${alpha(theme.palette.background.paper, 0.9)} 0%, ${alpha(theme.palette.background.default, 0.5)} 100%)`,
+                    background: `linear-gradient(135deg, ${alpha(
+                      theme.palette.background.paper,
+                      0.9,
+                    )} 0%, ${alpha(theme.palette.background.default, 0.5)} 100%)`,
                     backdropFilter: "blur(10px)",
                     border: `1px solid ${alpha(theme.palette.divider, 0.1)}`,
                   }}
@@ -274,7 +279,10 @@ export default function GamePlayPage() {
                   elevation={0}
                   sx={{
                     borderRadius: 3,
-                    background: `linear-gradient(135deg, ${alpha(theme.palette.background.paper, 0.9)} 0%, ${alpha(theme.palette.background.default, 0.5)} 100%)`,
+                    background: `linear-gradient(135deg, ${alpha(
+                      theme.palette.background.paper,
+                      0.9,
+                    )} 0%, ${alpha(theme.palette.background.default, 0.5)} 100%)`,
                     backdropFilter: "blur(10px)",
                     border: `1px solid ${alpha(theme.palette.divider, 0.1)}`,
                     maxHeight: 400,
@@ -297,26 +305,15 @@ export default function GamePlayPage() {
                         </Box>
                       ) : (
                         <List sx={{ p: 0 }}>
-                          {gameLog.map((log, index) => (
+                          {gameLog.map((log, idx) => (
                             <ListItem
-                              key={index}
+                              key={idx}
                               sx={{
-                                borderBottom:
-                                  index < gameLog.length - 1
-                                    ? `1px solid ${alpha(theme.palette.divider, 0.1)}`
-                                    : "none",
-                                "&:hover": {
-                                  bgcolor: alpha(theme.palette.primary.main, 0.04),
-                                },
+                                borderBottom: idx < gameLog.length - 1 ? `1px solid ${alpha(theme.palette.divider, 0.1)}` : "none",
+                                "&:hover": { bgcolor: alpha(theme.palette.primary.main, 0.04) },
                               }}
                             >
-                              <ListItemText
-                                primary={log}
-                                primaryTypographyProps={{
-                                  variant: "body2",
-                                  sx: { fontWeight: 500 },
-                                }}
-                              />
+                              <ListItemText primary={log} primaryTypographyProps={{ variant: "body2", sx: { fontWeight: 500 } }} />
                             </ListItem>
                           ))}
                         </List>

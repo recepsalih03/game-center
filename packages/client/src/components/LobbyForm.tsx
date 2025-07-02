@@ -20,6 +20,7 @@ import { Add, Event, Games, SportsEsports } from "@mui/icons-material"
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider"
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs"
 import { DateTimePicker } from "@mui/x-date-pickers/DateTimePicker"
+import dayjs from "dayjs"
 import type { Dayjs } from "dayjs"
 import type { Game } from "../services/gamesService"
 
@@ -44,12 +45,16 @@ export default function LobbyForm({ games, onCreate, canCreateLobby }: Props) {
       alert("Lütfen lobi adını ve oyunu seçin.")
       return
     }
-
-    if (lobbyType === "event" && (!eventStartsAt || !eventEndsAt)) {
-      alert("Etkinlik için başlangıç ve bitiş tarihi girin.")
-      return
+    if (lobbyType === "event") {
+      if (!eventStartsAt || !eventEndsAt) {
+        alert("Etkinlik için başlangıç ve bitiş tarihi girin.")
+        return
+      }
+      if (eventEndsAt.isBefore(eventStartsAt)) {
+        alert("Bitiş tarihi başlangıç tarihinden önce olamaz.")
+        return
+      }
     }
-
     onCreate({
       lobbyType,
       name,
@@ -57,10 +62,7 @@ export default function LobbyForm({ games, onCreate, canCreateLobby }: Props) {
       maxPlayers,
       password,
       ...(lobbyType === "event"
-        ? {
-            eventStartsAt: eventStartsAt!.toISOString(),
-            eventEndsAt: eventEndsAt!.toISOString(),
-          }
+        ? { eventStartsAt: eventStartsAt!.toISOString(), eventEndsAt: eventEndsAt!.toISOString() }
         : {}),
     })
   }
@@ -74,27 +76,20 @@ export default function LobbyForm({ games, onCreate, canCreateLobby }: Props) {
     py: 1,
     transition: "background-color 0.3s ease, color 0.3s ease",
     cursor: "pointer",
-    "& .MuiRadio-root": {
-      display: "none",
-    },
-  };
-
-  const selectedSx = {
-    bgcolor: "primary.main",
-    color: "primary.contrastText",
-  };
-
-  const unselectedSx = {
-    color: "text.secondary",
-  };
-
+    "& .MuiRadio-root": { display: "none" },
+  }
+  const selectedSx = { bgcolor: "primary.main", color: "primary.contrastText" }
+  const unselectedSx = { color: "text.secondary" }
 
   return (
     <Card
       elevation={0}
       sx={{
         borderRadius: 3,
-        background: `linear-gradient(135deg, ${alpha(theme.palette.background.paper, 0.9)} 0%, ${alpha(theme.palette.background.default, 0.7)} 100%)`,
+        background: `linear-gradient(135deg, ${alpha(theme.palette.background.paper, 0.9)} 0%, ${alpha(
+          theme.palette.background.default,
+          0.7,
+        )} 100%)`,
         backdropFilter: "blur(10px)",
         border: `1px solid ${alpha(theme.palette.divider, 0.2)}`,
         overflow: "hidden",
@@ -103,7 +98,10 @@ export default function LobbyForm({ games, onCreate, canCreateLobby }: Props) {
       <Box
         sx={{
           p: 2,
-          background: `linear-gradient(45deg, ${alpha(theme.palette.primary.main, 0.1)}, ${alpha(theme.palette.secondary.main, 0.1)})`,
+          background: `linear-gradient(45deg, ${alpha(theme.palette.primary.main, 0.1)}, ${alpha(
+            theme.palette.secondary.main,
+            0.1,
+          )})`,
           borderBottom: `1px solid ${alpha(theme.palette.divider, 0.1)}`,
         }}
       >
@@ -126,12 +124,7 @@ export default function LobbyForm({ games, onCreate, canCreateLobby }: Props) {
                 row
                 value={lobbyType}
                 onChange={(e) => setLobbyType(e.target.value as "normal" | "event")}
-                sx={{
-                  display: "flex",
-                  border: `1px solid ${theme.palette.divider}`,
-                  borderRadius: 2,
-                  overflow: "hidden",
-                }}
+                sx={{ display: "flex", border: `1px solid ${theme.palette.divider}`, borderRadius: 2, overflow: "hidden" }}
               >
                 <FormControlLabel
                   value="normal"
@@ -139,7 +132,9 @@ export default function LobbyForm({ games, onCreate, canCreateLobby }: Props) {
                   label={
                     <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
                       <SportsEsports fontSize="small" />
-                      <Typography variant="body2" sx={{ fontWeight: 500 }}>Normal</Typography>
+                      <Typography variant="body2" sx={{ fontWeight: 500 }}>
+                        Normal
+                      </Typography>
                     </Box>
                   }
                   disabled={!canCreateLobby}
@@ -155,14 +150,13 @@ export default function LobbyForm({ games, onCreate, canCreateLobby }: Props) {
                   label={
                     <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
                       <Event fontSize="small" />
-                      <Typography variant="body2" sx={{ fontWeight: 500 }}>Etkinlik</Typography>
+                      <Typography variant="body2" sx={{ fontWeight: 500 }}>
+                        Etkinlik
+                      </Typography>
                     </Box>
                   }
                   disabled={!canCreateLobby}
-                  sx={{
-                    ...radioLabelBaseSx,
-                    ...(lobbyType === "event" ? selectedSx : unselectedSx),
-                  }}
+                  sx={{ ...radioLabelBaseSx, ...(lobbyType === "event" ? selectedSx : unselectedSx) }}
                 />
               </RadioGroup>
             </Box>
@@ -217,13 +211,29 @@ export default function LobbyForm({ games, onCreate, canCreateLobby }: Props) {
                       label="Etkinlik Başlangıç"
                       value={eventStartsAt}
                       onChange={setEventStartsAt}
-                      slotProps={{ textField: { fullWidth: true, size: "small", disabled: !canCreateLobby, sx: { "& .MuiOutlinedInput-root": { borderRadius: 2 } } } }}
+                      minDateTime={dayjs()}
+                      slotProps={{
+                        textField: {
+                          fullWidth: true,
+                          size: "small",
+                          disabled: !canCreateLobby,
+                          sx: { "& .MuiOutlinedInput-root": { borderRadius: 2 } },
+                        },
+                      }}
                     />
                     <DateTimePicker
                       label="Etkinlik Bitiş"
                       value={eventEndsAt}
                       onChange={setEventEndsAt}
-                      slotProps={{ textField: { fullWidth: true, size: "small", disabled: !canCreateLobby, sx: { "& .MuiOutlinedInput-root": { borderRadius: 2 } } } }}
+                      minDateTime={eventStartsAt || dayjs()}
+                      slotProps={{
+                        textField: {
+                          fullWidth: true,
+                          size: "small",
+                          disabled: !canCreateLobby,
+                          sx: { "& .MuiOutlinedInput-root": { borderRadius: 2 } },
+                        },
+                      }}
                     />
                   </Box>
                 </LocalizationProvider>
@@ -256,9 +266,7 @@ export default function LobbyForm({ games, onCreate, canCreateLobby }: Props) {
                     transform: "translateY(-1px)",
                     boxShadow: theme.shadows[4],
                   },
-                  "&:disabled": {
-                    background: alpha(theme.palette.action.disabled, 0.3),
-                  },
+                  "&:disabled": { background: alpha(theme.palette.action.disabled, 0.3) },
                   transition: "all 0.2s ease",
                 }}
               >

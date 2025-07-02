@@ -145,7 +145,7 @@ export default function LobbyList({ lobbies, onJoin, onLeave, onInvite, onStartG
                             {lobby.name}
                           </Typography>
                           {lobby.lobbyType === "event" && (
-                            <Chip label="Event" size="small" color="secondary" icon={<Schedule />} />
+                            <Chip label="Etkinlik" size="small" color="secondary" icon={<Schedule />} />
                           )}
                         </Box>
 
@@ -167,7 +167,7 @@ export default function LobbyList({ lobbies, onJoin, onLeave, onInvite, onStartG
 
                         {timeInfo && (
                           <Typography variant="caption" color="text.secondary">
-                            {diff > 0 ? `Başlayana: ${timeInfo}` : timeInfo}
+                            {diff > 0 ? `Başlamasına: ${timeInfo}` : timeInfo}
                           </Typography>
                         )}
                       </Box>

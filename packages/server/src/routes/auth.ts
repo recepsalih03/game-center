@@ -20,13 +20,13 @@ const loginHandler: RequestHandler = (req, res) => {
 
   const user = users.find((u) => u.username === username);
   if (!user) {
-    res.status(401).json({ error: "Invalid credentials" });
+    res.status(401).json({ error: "Girdiğiniz bilgiler doğru değil." });
     return;
   }
 
   const passwordHash = hashData(password);
   if (passwordHash !== user.passwordHash) {
-    res.status(401).json({ error: "Invalid credentials" });
+    res.status(401).json({ error: "Girdiğiniz bilgiler doğru değil." });
     return;
   }
 

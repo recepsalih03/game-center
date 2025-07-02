@@ -1,29 +1,33 @@
-import React, { useState, useContext } from "react";
+"use client"
+
+import { useState, useContext } from "react"
 import {
   Box,
   Paper,
   Typography,
   CircularProgress,
   Alert,
-} from "@mui/material";
-import { SportsEsports } from "@mui/icons-material";
-import LoginIcon from "@mui/icons-material/Login";
-import LoginForm from "../components/LoginForm";
-import { AuthContext } from "../contexts/AuthContext";
-import { useNavigate, useLocation, Navigate } from "react-router-dom";
+  IconButton,
+  useTheme,
+  alpha,
+} from "@mui/material"
+import { SportsEsports, Brightness4, Brightness7 } from "@mui/icons-material"
+import LoginIcon from "@mui/icons-material/Login"
+import LoginForm from "../components/LoginForm"
+import { AuthContext } from "../contexts/AuthContext"
+import { useNavigate, useLocation, Navigate } from "react-router-dom"
+import { useThemeContext } from "../contexts/ThemeContext"
 
-const LoginPage: React.FC = () => {
-  const [showPassword, setShowPassword] = useState(false);
-  const { user, login, isLoading, error } = useContext(AuthContext);
-  const navigate = useNavigate();
-  const location = useLocation();
-  const fromPath = (location.state as any)?.from?.pathname || "/";
+export default function LoginPage() {
+  const { user, login, isLoading, error } = useContext(AuthContext)
+  const navigate = useNavigate()
+  const location = useLocation()
+  const fromPath = (location.state as any)?.from?.pathname || "/"
+  const [showPassword, setShowPassword] = useState(false)
+  const { toggleTheme, mode } = useThemeContext()
+  const theme = useTheme()
 
-  const handleClickShowPassword = () => setShowPassword((prev) => !prev);
-
-  if (user) {
-    return <Navigate to={fromPath} replace />;
-  }
+  if (user) return <Navigate to={fromPath} replace />
 
   return (
     <Box
@@ -37,6 +41,12 @@ const LoginPage: React.FC = () => {
         backgroundImage: "url('/toy-story-cloud.png')",
         backgroundSize: "cover",
         backgroundPosition: "center",
+        "&::before": {
+          content: '""',
+          position: "absolute",
+          inset: 0,
+          bgcolor: alpha(theme.palette.background.default, 0.5),
+        },
       }}
     >
       <Box
@@ -46,14 +56,22 @@ const LoginPage: React.FC = () => {
           left: 20,
           display: "flex",
           alignItems: "center",
+          gap: 1,
           zIndex: 2,
         }}
       >
-        <SportsEsports sx={{ fontSize: 32, color: "white", mr: 1 }} />
+        <SportsEsports sx={{ fontSize: 32, color: "white" }} />
         <Typography variant="h5" fontWeight="bold" color="white">
           Game Center
         </Typography>
       </Box>
+
+      <IconButton
+        onClick={toggleTheme}
+        sx={{ position: "absolute", top: 20, right: 20, zIndex: 2, color: "white" }}
+      >
+        {mode === "dark" ? <Brightness7 /> : <Brightness4 />}
+      </IconButton>
 
       <Paper
         elevation={10}
@@ -67,7 +85,7 @@ const LoginPage: React.FC = () => {
           alignItems: "center",
           position: "relative",
           zIndex: 1,
-          background: "rgba(255,255,255,0.95)",
+          background: alpha(theme.palette.background.paper, 0.92),
           backdropFilter: "blur(10px)",
         }}
       >
@@ -76,25 +94,20 @@ const LoginPage: React.FC = () => {
             width: 60,
             height: 60,
             borderRadius: "50%",
-            backgroundColor: "#f5f5f5",
+            backgroundColor: alpha(theme.palette.primary.main, 0.1),
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
             mb: 2,
           }}
         >
-          <LoginIcon sx={{ fontSize: 30, color: "#3A59D1" }} />
+          <LoginIcon sx={{ fontSize: 30, color: theme.palette.primary.main }} />
         </Box>
 
         <Typography variant="h4" fontWeight="bold" align="center" gutterBottom>
           Oyun Merkezi'ne Giriş Yap
         </Typography>
-        <Typography
-          variant="body1"
-          color="text.secondary"
-          align="center"
-          sx={{ mb: 4 }}
-        >
+        <Typography variant="body1" color="text.secondary" align="center" sx={{ mb: 4 }}>
           Oyun kütüphanene eriş, arkadaşlarınla bağlantı kur ve yeni oyunlar keşfet.
         </Typography>
 
@@ -109,20 +122,16 @@ const LoginPage: React.FC = () => {
         ) : (
           <LoginForm
             showPassword={showPassword}
-            onTogglePassword={handleClickShowPassword}
+            onTogglePassword={() => setShowPassword((p) => !p)}
             onSubmit={async (username, password) => {
               try {
-                await login(username, password);
-                navigate(fromPath, { replace: true });
-              } catch (err: any) {
-                console.error("Giriş hatası:", err);
-              }
+                await login(username, password)
+                navigate(fromPath, { replace: true })
+              } catch {}
             }}
           />
         )}
       </Paper>
     </Box>
-  );
-};
-
-export default LoginPage;
+  )
+}
